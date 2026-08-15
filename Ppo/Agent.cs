@@ -19,21 +19,21 @@ public class Agent : nn.Module
     public Agent(IEnv env) : base("agent")
     {
         Critic = nn.Sequential(
-            CreateLayer(nn.Linear(env.InputSize, 64)),
+            CreateLayer(nn.Linear(env.InputSize, 8)),
             nn.Tanh(),
-            CreateLayer(nn.Linear(64, 64)),
+            CreateLayer(nn.Linear(8, 8)),
             nn.Tanh(),
-            CreateLayer(nn.Linear(64, 1), std: 1.0f)
+            CreateLayer(nn.Linear(8, 1), std: 1.0f)
         );
 
         Actor = nn.Sequential(
-            CreateLayer(nn.Linear(env.InputSize, 64)),
+            CreateLayer(nn.Linear(env.InputSize, 8)),
             nn.Tanh(),
-            CreateLayer(nn.Linear(64, 64)),
+            CreateLayer(nn.Linear(8, 8)),
             nn.Tanh(),
             // Outputs the mean of each action dimension. std = 0.01 keeps the
             // initial mean-output close to zero rather than confidently biased.
-            CreateLayer(nn.Linear(64, env.OutputSize), std: 0.01f)
+            CreateLayer(nn.Linear(8, env.OutputSize), std: 0.01f)
         );
 
         // log(std) starts at 0 => std = 1 initially. This is a free parameter,

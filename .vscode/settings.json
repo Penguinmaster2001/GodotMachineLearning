@@ -2,5 +2,8 @@
     "godotTools.editorPath.godot4": "/usr/bin/godot-mono",
     "cSpell.words": [
         "optim"
-    ]
+    ],
+    "files.exclude": {
+        "**/*.uid": true
+    }
 }

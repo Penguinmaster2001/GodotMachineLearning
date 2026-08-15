@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://dvroypomg3ga4"]
+
+[ext_resource type="Script" uid="uid://dfk04ac1klsn3" path="res://Running/TrainerBootstrap.cs" id="1_xf8n7"]
+[ext_resource type="PackedScene" uid="uid://dkop7cxn0wclu" path="res://Envs/Ball/Scenes/ball.tscn" id="2_xf8n7"]
+[ext_resource type="PackedScene" uid="uid://bn7ej2ge0x7w3" path="res://Envs/Ball/Scenes/target.tscn" id="3_ok0sk"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_a5ajg"]
+
+[node name="BallEnv" type="Node3D" unique_id=200672757 node_paths=PackedStringArray("_start", "_end")]
+script = ExtResource("1_xf8n7")
+_ball = ExtResource("2_xf8n7")
+_target = ExtResource("3_ok0sk")
+_num = 128
+_start = NodePath("MeshInstance3D")
+_end = NodePath("MeshInstance3D2")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=534774750]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50)
+projection = 1
+fov = 30.0
+size = 27.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=212227633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.794, -2, 0)
+mesh = SubResource("SphereMesh_a5ajg")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=698615872]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.059, 2, 0)
+mesh = SubResource("SphereMesh_a5ajg")
