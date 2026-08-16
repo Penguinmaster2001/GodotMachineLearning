@@ -103,7 +103,7 @@ public class BallTrackEnv : IEnv
             float dist = SignedDistance(i);
             float speed = _balls[i].LinearVelocity.Y;
 
-            reward[i] = -MathF.Abs(dist) - 0.01f;
+            reward[i] = -MathF.Abs(dist / 6.0f) - 0.01f;
 
             bool reachedTarget = MathF.Abs(dist) < TargetTolerance
                                   && MathF.Abs(speed) < StopSpeedTolerance;

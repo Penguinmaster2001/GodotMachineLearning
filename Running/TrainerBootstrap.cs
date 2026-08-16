@@ -55,12 +55,12 @@ public partial class TrainerBootstrap : Node
         var options = new PpoOptions
         {
             UseCuda = false,
-            NumSteps = 128,
+            NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
             TotalTimesteps = 3_000_000,
-            BatchSize = 128 * env.NumEnvs,
-            MinibatchSize = 256,
+            BatchSize = 512 * env.NumEnvs,
+            MinibatchSize = 512,
             UpdateEpochs = 10,
             AnnealLR = true,
             EntCoef = 0.001
