@@ -2,6 +2,7 @@
 using Godot;
 
 
+
 namespace PPO.Ppo;
 
 
@@ -54,7 +55,7 @@ public partial class TrainerBootstrap : Node
         var env = new BallTrackEnv(balls, targets);
         var options = new PpoOptions
         {
-            UseCuda = false,
+            UseCuda = true,
             NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
@@ -63,10 +64,13 @@ public partial class TrainerBootstrap : Node
             MinibatchSize = 512,
             UpdateEpochs = 10,
             AnnealLR = true,
-            EntCoef = 0.001
+            EntCoef = 0.001,
+            HiddenLayerSizes = [2, 2]
         };
 
-        _trainer = new PpoTrainer(env, options);
+        _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath("res://Checkpoints/1d_ball"));
+        // _trainer = PpoTrainer.CreateNew(env, options);
+        _trainer.CheckpointPath = ProjectSettings.GlobalizePath("res://Checkpoints/1d_ball");
     }
 
 
@@ -75,8 +79,10 @@ public partial class TrainerBootstrap : Node
     {
         if (_trainer.IsDone)
         {
-            return; // or trigger evaluation / save weights / stop the scene
+            return;
         }
+
+        _trainer.SaveNextUpdate |= Input.IsKeyPressed(Key.Space);
 
         _trainer.Tick();
     }

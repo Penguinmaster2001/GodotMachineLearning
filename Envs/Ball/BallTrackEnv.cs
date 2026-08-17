@@ -20,10 +20,18 @@ public class BallTrackEnv : IEnv
     private readonly Vector3[] _startPositions;
     private readonly int[] _stepCounts;
 
-    private const int MaxSteps = 200;
-    private const float TargetTolerance = 0.1f;
-    private const float StopSpeedTolerance = 0.05f;
-    private const float MaxCommandSpeed = 5.0f;
+    
+    [Export]
+    private int MaxSteps = 200;
+    
+    [Export]
+    private float TargetTolerance = 0.1f;
+    
+    [Export]
+    private float StopSpeedTolerance = 0.05f;
+    
+    [Export]
+    private float MaxCommandSpeed = 5.0f;
 
 
 

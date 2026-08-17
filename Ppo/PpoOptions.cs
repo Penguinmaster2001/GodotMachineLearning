@@ -16,6 +16,8 @@ public class PpoOptions
     public int UpdateEpochs;
     public bool AnnealLR;
 
+    public int[] HiddenLayerSizes = [];
+
     public bool Gae = true;
     public double Gamma = 0.99;
     public double GaeLambda = 0.95;

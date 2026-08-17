@@ -12,6 +12,7 @@ height = 0.4
 radius = 0.2
 
 [node name="Ball" type="RigidBody3D" unique_id=1789038407]
+collision_mask = 2
 gravity_scale = 0.0
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1357265694]
@@ -19,4 +20,3 @@ mesh = SubResource("SphereMesh_a5ajg")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=684561247]
 shape = SubResource("SphereShape3D_a5ajg")
-disabled = true

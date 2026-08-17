@@ -1,3 +1,5 @@
+
+using System.Collections.Generic;
 using TorchSharp;
 using TorchSharp.Modules;
 using nn = TorchSharp.torch.nn;
@@ -16,34 +18,35 @@ public class Agent : nn.Module
 
 
 
-    public Agent(IEnv env) : base("agent")
+    public Agent(IEnv env, int[] hiddenSizes) : base("agent")
     {
-        Critic = nn.Sequential(
-            CreateLayer(nn.Linear(env.InputSize, 8)),
-            nn.Tanh(),
-            CreateLayer(nn.Linear(8, 8)),
-            nn.Tanh(),
-            CreateLayer(nn.Linear(8, 1), std: 1.0f)
-        );
+        Critic = BuildMlp(env.InputSize, hiddenSizes, outputSize: 1, outputStd: 1.0f);
+        Actor = BuildMlp(env.InputSize, hiddenSizes, outputSize: env.OutputSize, outputStd: 0.01f);
 
-        Actor = nn.Sequential(
-            CreateLayer(nn.Linear(env.InputSize, 8)),
-            nn.Tanh(),
-            CreateLayer(nn.Linear(8, 8)),
-            nn.Tanh(),
-            // Outputs the mean of each action dimension. std = 0.01 keeps the
-            // initial mean-output close to zero rather than confidently biased.
-            CreateLayer(nn.Linear(8, env.OutputSize), std: 0.01f)
-        );
-
-        // log(std) starts at 0 => std = 1 initially. This is a free parameter,
-        // NOT a function of the input state — the network never sees it and
-        // never computes it per-step; it's just another set of trainable
-        // weights that gradient descent adjusts over the course of training,
-        // typically shrinking as the policy becomes more confident.
-        LogStd = torch.nn.Parameter(torch.zeros(env.OutputSize));
+        // log(std) starts at 0 => std = 1 initially. Free parameter, not a
+        // function of the input state — see earlier explanation.
+        LogStd = nn.Parameter(torch.zeros(env.OutputSize));
 
         RegisterComponents();
+    }
+
+
+
+    private Sequential BuildMlp(long inputSize, int[] hiddenSizes, long outputSize, float outputStd)
+    {
+        var modules = new List<nn.Module<torch.Tensor, torch.Tensor>>();
+        long prevSize = inputSize;
+
+        foreach (var hidden in hiddenSizes)
+        {
+            modules.Add(CreateLayer(nn.Linear(prevSize, hidden)));
+            modules.Add(nn.Tanh());
+            prevSize = hidden;
+        }
+
+        modules.Add(CreateLayer(nn.Linear(prevSize, outputSize), std: outputStd));
+
+        return nn.Sequential(modules);
     }
 
 
@@ -61,7 +64,7 @@ public class Agent : nn.Module
         var mean = Actor.call(x);                       // shape [batch, OutputSize]
         var std = LogStd.exp().expand_as(mean);          // broadcast to match batch
 
-        var probs = new TorchSharp.Modules.Normal(mean, std);
+        var probs = new Normal(mean, std);
 
         action ??= probs.sample();
 

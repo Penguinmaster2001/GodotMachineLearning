@@ -6,6 +6,8 @@
 
 [sub_resource type="SphereMesh" id="SphereMesh_a5ajg"]
 
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_a5ajg"]
+
 [node name="BallEnv" type="Node3D" unique_id=200672757 node_paths=PackedStringArray("_start", "_end")]
 script = ExtResource("1_xf8n7")
 _ball = ExtResource("2_xf8n7")
@@ -23,6 +25,13 @@ size = 27.0
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=212227633]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -12, 0)
 mesh = SubResource("SphereMesh_a5ajg")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D" unique_id=1143115713]
+collision_layer = 3
+collision_mask = 3
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D" unique_id=1479047989]
+shape = SubResource("WorldBoundaryShape3D_a5ajg")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=698615872]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 12, 0)

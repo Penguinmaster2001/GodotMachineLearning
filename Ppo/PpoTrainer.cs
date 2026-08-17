@@ -1,7 +1,8 @@
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using TorchSharp;
+using TorchSharp.Modules;
 using torch = TorchSharp.torch;
 
 
@@ -16,12 +17,11 @@ namespace PPO.Ppo;
 // or ready to run a PPO update (pure tensor math, no env interaction).
 public class PpoTrainer
 {
-    public DeviceType Device;
-
+    private DeviceType _device;
     private readonly IEnv _env;
     private readonly PpoOptions _args;
     private readonly Agent _agent;
-    private readonly torch.optim.Optimizer _optimizer;
+    private readonly OptimizerHelper _optimizer;
     private readonly Random _rng;
 
     private readonly torch.Tensor _obs, _actions, _logProbs, _rewards, _dones, _values;
@@ -37,26 +37,57 @@ public class PpoTrainer
 
     public bool IsDone => _updateIndex >= _numUpdates;
 
+    public string CheckpointPath = null;
+    public bool SaveNextUpdate = false;
 
 
-    public PpoTrainer(IEnv env, PpoOptions args)
+
+    public static PpoTrainer CreateNew(IEnv env, PpoOptions args)
+    {
+        var agent = new Agent(env, args.HiddenLayerSizes);        
+        return new(env, args, agent);
+    }
+
+
+
+    public static PpoTrainer Load(IEnv env, PpoOptions args, string path)
+    {
+        Console.WriteLine($"Loading from {path}");
+
+        var agent = new Agent(env, args.HiddenLayerSizes);
+        agent.load($"{path}.agent.dat");
+
+        using var reader = new BinaryReader(File.OpenRead($"{path}.meta.dat"));
+        return new(env, args, agent)
+        {
+            _updateIndex = reader.ReadInt32(),
+            _globalStep = reader.ReadInt32(),
+            _stepIndex = 0,
+        };
+    }
+
+
+
+    private PpoTrainer(IEnv env, PpoOptions args, Agent agent)
     {
         _env = env;
         _args = args;
-        Device = torch.cuda_is_available() ? DeviceType.CUDA : DeviceType.CPU;
+        _device = (args.UseCuda && torch.cuda_is_available()) ? DeviceType.CUDA : DeviceType.CPU;
 
-        _agent = new Agent(env).to(Device);
-        _optimizer = torch.optim.Adam(_agent.parameters(), lr: args.LearningRate, eps: 1e-5);
+        Console.WriteLine(_device);
 
-        _obs = torch.zeros([args.NumSteps, args.NumEnvs, env.InputSize]).to(Device);
-        _actions = torch.zeros([args.NumSteps, args.NumEnvs, env.OutputSize]).to(Device);
-        _logProbs = torch.zeros([args.NumSteps, args.NumEnvs]).to(Device);
-        _rewards = torch.zeros([args.NumSteps, args.NumEnvs]).to(Device);
-        _dones = torch.zeros([args.NumSteps, args.NumEnvs]).to(Device);
-        _values = torch.zeros([args.NumSteps, args.NumEnvs]).to(Device);
+        _agent = agent.to(_device);
+        _optimizer = torch.optim.Adam(agent.parameters(), lr: _args.LearningRate, eps: 1e-5);
 
-        _currentObs = env.Reset().to(Device);
-        _currentDone = torch.zeros(args.NumEnvs).to(Device);
+        _obs = torch.zeros([args.NumSteps, args.NumEnvs, env.InputSize]).to(_device);
+        _actions = torch.zeros([args.NumSteps, args.NumEnvs, env.OutputSize]).to(_device);
+        _logProbs = torch.zeros([args.NumSteps, args.NumEnvs]).to(_device);
+        _rewards = torch.zeros([args.NumSteps, args.NumEnvs]).to(_device);
+        _dones = torch.zeros([args.NumSteps, args.NumEnvs]).to(_device);
+        _values = torch.zeros([args.NumSteps, args.NumEnvs]).to(_device);
+
+        _currentObs = env.Reset().to(_device);
+        _currentDone = torch.zeros(args.NumEnvs).to(_device);
 
         _numUpdates = args.TotalTimesteps / args.BatchSize;
         _rng = new Random(args.Seed);
@@ -78,6 +109,13 @@ public class PpoTrainer
         {
             RunUpdate();
             _stepIndex = 0;
+
+            if (SaveNextUpdate)
+            {
+                SaveCheckpoint(CheckpointPath);
+                SaveNextUpdate = false;
+            }
+
             _updateIndex++;
 
             if (_args.AnnealLR && !IsDone)
@@ -127,7 +165,7 @@ public class PpoTrainer
         // var nextObs = _env.Observe();
         var (reward, terminated, truncated) = _env.Evaluate();
 
-        _rewards[_stepIndex] = reward.to(Device).view(-1);
+        _rewards[_stepIndex] = reward.to(_device).view(-1);
         var done = terminated.logical_or(truncated).to(torch.float32);
 
         for (int i = 0; i < _args.NumEnvs; i++)
@@ -138,8 +176,8 @@ public class PpoTrainer
             }
         }
 
-        _currentObs = _env.Observe().to(Device); // re-read in case ResetEnv changed anything
-        _currentDone = done.to(Device);
+        _currentObs = _env.Observe().to(_device); // re-read in case ResetEnv changed anything
+        _currentDone = done.to(_device);
 
         _stepIndex++;
     }
@@ -154,7 +192,7 @@ public class PpoTrainer
         using (torch.no_grad())
         {
             var nextValue = _agent.GetValue(_currentObs).view(-1);
-            advantages = torch.zeros_like(_rewards).to(Device);
+            advantages = torch.zeros_like(_rewards).to(_device);
             var lastGaeLam = torch.zeros_like(_currentDone);
 
             for (int t = args.NumSteps - 1; t >= 0; t--)
@@ -196,7 +234,7 @@ public class PpoTrainer
             for (int start = 0; start < args.BatchSize; start += args.MinibatchSize)
             {
                 var end = Math.Min(start + args.MinibatchSize, args.BatchSize);
-                var mbInds = torch.tensor(bInds[start..end].Select(i => (long)i).ToArray()).to(Device);
+                var mbInds = torch.tensor(bInds[start..end].Select(i => (long)i).ToArray()).to(_device);
 
                 var mbObs = bObs.index_select(0, mbInds);
                 var mbActions = bActions.index_select(0, mbInds);
@@ -266,5 +304,25 @@ public class PpoTrainer
             int j = rng.Next(i + 1);
             (array[i], array[j]) = (array[j], array[i]);
         }
+    }
+
+
+
+    public void SaveCheckpoint(string path = "")
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            if (string.IsNullOrWhiteSpace(CheckpointPath)) return;
+
+            path = CheckpointPath;
+        }
+
+        Console.WriteLine($"Saving to {path}");
+
+        _agent.save($"{path}.agent.dat");
+
+        using var writer = new BinaryWriter(File.OpenWrite($"{path}.meta.dat"));
+        writer.Write(_updateIndex);
+        writer.Write(_globalStep);
     }
 }
