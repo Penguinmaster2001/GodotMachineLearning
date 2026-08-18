@@ -12,9 +12,9 @@
 script = ExtResource("1_xf8n7")
 _ball = ExtResource("2_xf8n7")
 _target = ExtResource("3_ok0sk")
-_num = 128
-_start = NodePath("MeshInstance3D")
-_end = NodePath("MeshInstance3D2")
+_num = 256
+_start = NodePath("lowerBoundry")
+_end = NodePath("upperBoundry")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=534774750]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50)
@@ -22,17 +22,27 @@ projection = 1
 fov = 30.0
 size = 27.0
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=212227633]
+[node name="lowerBoundry" type="MeshInstance3D" parent="." unique_id=212227633]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, -12, 0)
 mesh = SubResource("SphereMesh_a5ajg")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D" unique_id=1143115713]
+[node name="StaticBody3D" type="StaticBody3D" parent="lowerBoundry" unique_id=1143115713]
 collision_layer = 3
 collision_mask = 3
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D" unique_id=1479047989]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="lowerBoundry/StaticBody3D" unique_id=1479047989]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
 shape = SubResource("WorldBoundaryShape3D_a5ajg")
 
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=698615872]
+[node name="upperBoundry" type="MeshInstance3D" parent="." unique_id=698615872]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 12, 0)
 mesh = SubResource("SphereMesh_a5ajg")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="upperBoundry" unique_id=652815645]
+transform = Transform3D(-1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 0, 0, 1, 0, 0, 0)
+collision_layer = 3
+collision_mask = 3
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="upperBoundry/StaticBody3D" unique_id=892472571]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+shape = SubResource("WorldBoundaryShape3D_a5ajg")

@@ -1,5 +1,6 @@
 
 using Godot;
+using PPO.Envs.Ball;
 
 
 
@@ -34,12 +35,12 @@ public partial class TrainerBootstrap : Node
     {
         var rng = new RandomNumberGenerator();
 
-        var balls = new RigidBody3D[_num];
+        var balls = new BallNode[_num];
         var targets = new Node3D[_num];
         for (int i = 0; i < _num; i++)
         {
             var pos = _start.Position.Lerp(_end.Position, (float)i / (_num - 1));
-            var ball = _ball.Instantiate<RigidBody3D>();
+            var ball = _ball.Instantiate<BallNode>();
             pos.Y = rng.RandfRange(_start.Position.Y, _end.Position.Y);
             ball.Position = pos;
             AddChild(ball);
@@ -52,25 +53,35 @@ public partial class TrainerBootstrap : Node
             targets[i] = target;
         }
 
-        var env = new BallTrackEnv(balls, targets);
+        var env = new BallTrackEnv(balls, targets, b =>
+        {
+            var pos = b.Position;
+            pos.Y = rng.RandfRange(_start.Position.Y, _end.Position.Y);
+            b.Position = pos;
+            b.LinearVelocity = rng.RandfRange(-2.0f, 2.0f) * Vector3.Up;
+            b.Acceleration = Vector3.Zero;
+            b.age = 0.0f;
+        });
+
         var options = new PpoOptions
         {
-            UseCuda = true,
+            UseCuda = false,
             NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
-            TotalTimesteps = 3_000_000,
+            TotalTimesteps = 32_000_000,
             BatchSize = 512 * env.NumEnvs,
-            MinibatchSize = 512,
-            UpdateEpochs = 10,
+            MinibatchSize = 8196,
+            UpdateEpochs = 4,
             AnnealLR = true,
             EntCoef = 0.001,
-            HiddenLayerSizes = [2, 2]
+            HiddenLayerSizes = [8, 8]
         };
 
-        _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath("res://Checkpoints/1d_ball"));
+        _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath("res://Checkpoints/1d_acc_ball"));
+        _trainer.ResetCount();
         // _trainer = PpoTrainer.CreateNew(env, options);
-        _trainer.CheckpointPath = ProjectSettings.GlobalizePath("res://Checkpoints/1d_ball");
+        _trainer.CheckpointPath = ProjectSettings.GlobalizePath("res://Checkpoints/1d_acc_ball");
     }
 
 

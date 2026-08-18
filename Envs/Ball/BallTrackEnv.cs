@@ -1,6 +1,7 @@
 
 using System;
 using Godot;
+using PPO.Envs.Ball;
 using TorchSharp;
 
 
@@ -11,34 +12,36 @@ namespace PPO.Ppo;
 
 public class BallTrackEnv : IEnv
 {
-    public long InputSize => 2;
+    public long InputSize => 3;
     public long OutputSize => 1;
     public int NumEnvs => _balls.Length;
 
-    private readonly RigidBody3D[] _balls;
+    private readonly BallNode[] _balls;
     private readonly Node3D[] _targets;
     private readonly Vector3[] _startPositions;
     private readonly int[] _stepCounts;
+    private readonly Action<BallNode> _reset;
 
     
     [Export]
-    private int MaxSteps = 200;
+    private int MaxSteps = 512;
     
     [Export]
-    private float TargetTolerance = 0.1f;
+    private float TargetTolerance = 0.05f;
     
     [Export]
     private float StopSpeedTolerance = 0.05f;
     
     [Export]
-    private float MaxCommandSpeed = 5.0f;
+    private float MaxCommandSpeed = 25.0f;
 
 
 
-    public BallTrackEnv(RigidBody3D[] balls, Node3D[] targets)
+    public BallTrackEnv(BallNode[] balls, Node3D[] targets, Action<BallNode> reset)
     {
         _balls = balls;
         _targets = targets;
+        _reset = reset;
 
         _startPositions = new Vector3[balls.Length];
         for (int i = 0; i < balls.Length; i++)
@@ -83,15 +86,17 @@ public class BallTrackEnv : IEnv
     // Observe(), not here.
     public void Actuate(torch.Tensor action)
     {
+        var ave = 0.0f;
         for (int i = 0; i < NumEnvs; i++)
         {
-            float commandedSpeed = action[i, 0].item<float>();
+            float commandedSpeed = 3.0f * action[i, 0].item<float>();
             commandedSpeed = Math.Clamp(commandedSpeed, -MaxCommandSpeed, MaxCommandSpeed);
+            ave += MathF.Abs(commandedSpeed);
 
-            var velocity = _balls[i].LinearVelocity;
-            velocity.Y = commandedSpeed;
-            _balls[i].LinearVelocity = velocity;
+            _balls[i].ApplyForce(commandedSpeed * Vector3.Up);
         }
+
+        // GD.Print($"ave: {ave / _balls.Length}");
     }
 
 
@@ -111,18 +116,24 @@ public class BallTrackEnv : IEnv
             float dist = SignedDistance(i);
             float speed = _balls[i].LinearVelocity.Y;
 
-            reward[i] = -MathF.Abs(dist / 6.0f) - 0.01f;
+            reward[i] = -MathF.Abs(dist / 2.0f) - 0.01f;
 
             bool reachedTarget = MathF.Abs(dist) < TargetTolerance
                                   && MathF.Abs(speed) < StopSpeedTolerance;
             bool timedOut = _stepCounts[i] >= MaxSteps;
+            bool hitEdge = MathF.Abs(dist) >= 12.0f;
 
-            terminated[i] = reachedTarget;
-            truncated[i] = timedOut && !reachedTarget;
+            terminated[i] = reachedTarget || hitEdge;
+            truncated[i] = timedOut && !reachedTarget && !hitEdge;
 
             if (reachedTarget)
             {
-                reward[i] += 10.0f;
+                reward[i] += 60.0f / _balls[i].age;
+            }
+
+            if (hitEdge)
+            {
+                reward[i] -= 10.0f;
             }
         }
 
@@ -133,8 +144,9 @@ public class BallTrackEnv : IEnv
 
     public void ResetEnv(int i)
     {
-        _balls[i].GlobalPosition = _startPositions[i];
-        _balls[i].LinearVelocity = Vector3.Zero;
+        _reset(_balls[i]);
+        // _balls[i].GlobalPosition = _startPositions[i];
+        // _balls[i].LinearVelocity = Vector3.Zero;
         _stepCounts[i] = 0;
     }
 
@@ -157,5 +169,6 @@ public class BallTrackEnv : IEnv
     {
         obs[i, 0] = SignedDistance(i);
         obs[i, 1] = _balls[i].LinearVelocity.Y;
+        obs[i, 2] = _balls[i].Acceleration.Y;
     }
 }

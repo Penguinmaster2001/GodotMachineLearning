@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://dkop7cxn0wclu"]
 
+[ext_resource type="Script" uid="uid://cpm5eakd44q2a" path="res://Envs/Ball/BallNode.cs" id="1_7w1oo"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xf8n7"]
 albedo_color = Color(1, 0.16470589, 0.14901961, 1)
 
@@ -13,7 +15,13 @@ radius = 0.2
 
 [node name="Ball" type="RigidBody3D" unique_id=1789038407]
 collision_mask = 2
-gravity_scale = 0.0
+axis_lock_linear_x = true
+axis_lock_linear_z = true
+axis_lock_angular_x = true
+axis_lock_angular_y = true
+axis_lock_angular_z = true
+linear_damp = 0.05
+script = ExtResource("1_7w1oo")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1357265694]
 mesh = SubResource("SphereMesh_a5ajg")

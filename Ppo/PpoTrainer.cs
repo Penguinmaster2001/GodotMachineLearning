@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using PPO.Benchmarking;
 using TorchSharp;
 using TorchSharp.Modules;
 using torch = TorchSharp.torch;
@@ -44,7 +45,7 @@ public class PpoTrainer
 
     public static PpoTrainer CreateNew(IEnv env, PpoOptions args)
     {
-        var agent = new Agent(env, args.HiddenLayerSizes);        
+        var agent = new Agent(env, args.HiddenLayerSizes);
         return new(env, args, agent);
     }
 
@@ -186,6 +187,7 @@ public class PpoTrainer
 
     private void RunUpdate()
     {
+        using var updateTimer = ScopedTimer.Start("Run update");
         var args = _args;
         torch.Tensor advantages, returns;
 
@@ -229,6 +231,7 @@ public class PpoTrainer
 
         for (int epoch = 0; epoch < args.UpdateEpochs; epoch++)
         {
+            using var epochTimer = ScopedTimer.Start($"epoch {epoch}");
             Shuffle(bInds, _rng);
 
             for (int start = 0; start < args.BatchSize; start += args.MinibatchSize)
@@ -290,9 +293,16 @@ public class PpoTrainer
         }
 
         var sps = (int)(_globalStep / (DateTime.Now - _startTime).TotalSeconds);
-        Console.WriteLine($"update={_updateIndex + 1} global_step={_globalStep} SPS={sps} " +
+        var yPred = bValues.cpu();
+        var yTrue = bReturns.cpu();
+        var varY = yTrue.var();
+        var explainedVar = varY.item<float>() == 0
+            ? float.NaN
+            : 1 - (yTrue - yPred).var().item<float>() / varY.item<float>();
+        Console.WriteLine($"\nupdate={_updateIndex + 1} global_step={_globalStep} SPS={sps} " +
                           $"pg_loss={pgLoss?.item<float>():F4} v_loss={vLoss?.item<float>():F4} " +
-                          $"approx_kl={approxKl?.item<float>():F4}");
+                          $"approx_kl={approxKl?.item<float>():F4} " +
+                          $"explained_variance={explainedVar:F4}");
     }
 
 
@@ -324,5 +334,13 @@ public class PpoTrainer
         using var writer = new BinaryWriter(File.OpenWrite($"{path}.meta.dat"));
         writer.Write(_updateIndex);
         writer.Write(_globalStep);
+    }
+
+
+
+    public void ResetCount()
+    {
+        _updateIndex = 0;
+        _agent.LogStd = torch.nn.Parameter(torch.zeros(_env.OutputSize));
     }
 }
