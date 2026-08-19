@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://c0k56bkuqpaio"]
+
+[ext_resource type="Script" uid="uid://dfk04ac1klsn3" path="res://Running/TrainerBootstrap.cs" id="1_nslsp"]
+[ext_resource type="PackedScene" uid="uid://b4ynaae25g7so" path="res://Envs/Chase/Scenes/chaser.tscn" id="2_cnw6l"]
+[ext_resource type="PackedScene" uid="uid://d3sd8tqfwhncg" path="res://Envs/Chase/Scenes/chase_target.tscn" id="3_d7n3c"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
+shading_mode = 0
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_a5ajg"]
+material = SubResource("StandardMaterial3D_gla0r")
+radius = 0.1
+height = 0.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nslsp"]
+shading_mode = 0
+albedo_color = Color(0.51666665, 1, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_nslsp"]
+material = SubResource("StandardMaterial3D_nslsp")
+radius = 0.1
+height = 0.2
+
+[sub_resource type="Environment" id="Environment_a5ajg"]
+background_mode = 1
+background_energy_multiplier = 0.0
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+reflected_light_source = 1
+tonemap_mode = 4
+
+[node name="ChaserEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end")]
+script = ExtResource("1_nslsp")
+_chaser = ExtResource("2_cnw6l")
+_target = ExtResource("3_d7n3c")
+_num = 128
+_start = NodePath("First")
+_end = NodePath("Second")
+_checkpointName = "3d_chaser_line"
+_loadFromCheckpoint = true
+_saveCheckpoints = true
+
+[node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, -30, -30)
+mesh = SubResource("SphereMesh_a5ajg")
+
+[node name="Second" type="MeshInstance3D" parent="." unique_id=2034012286]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 50, 30, 30)
+mesh = SubResource("SphereMesh_nslsp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
+transform = Transform3D(0.9189263, 0.124524325, 0.37425688, -0.39442942, 0.29011202, 0.87192935, 0, -0.94885665, 0.3157076, 0, 0, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=486263588]
+environment = SubResource("Environment_a5ajg")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1863966396]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -125, 0, 0)
+projection = 1
+size = 60.0

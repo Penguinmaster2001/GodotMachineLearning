@@ -1,12 +1,12 @@
 
 using System;
 using Godot;
-using PPO.Envs.Ball;
+using PPO.Ppo;
 using TorchSharp;
 
 
 
-namespace PPO.Ppo;
+namespace PPO.Envs.Ball;
 
 
 

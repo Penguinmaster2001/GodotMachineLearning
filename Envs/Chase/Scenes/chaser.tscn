@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://b4ynaae25g7so"]
+
+[ext_resource type="ArrayMesh" uid="uid://b5vlcs2galvj5" path="res://Assets/Models/drone.obj" id="1_ew4sn"]
+[ext_resource type="Script" uid="uid://cu17d4ocipqes" path="res://Envs/Chase/ChaserNode.cs" id="1_hgjol"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a5ajg"]
+radius = 0.06591797
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6lm8f"]
+
+[node name="Chaser" type="RigidBody3D" unique_id=439891586 node_paths=PackedStringArray("Mesh")]
+gravity_scale = 0.0
+linear_damp = 0.2
+angular_damp = 0.5
+script = ExtResource("1_hgjol")
+Thrust = 1.0
+TurnAuthority = Vector3(0.2, 0, 0.2)
+Mesh = NodePath("Drone")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=211362281]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
+shape = SubResource("CapsuleShape3D_a5ajg")
+disabled = true
+debug_color = Color(0.65, 0.94750005, 1, 1)
+
+[node name="Drone" type="MeshInstance3D" parent="." unique_id=1493978856]
+material_override = SubResource("StandardMaterial3D_6lm8f")
+mesh = ExtResource("1_ew4sn")

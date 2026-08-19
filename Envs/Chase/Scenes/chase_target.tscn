@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://d3sd8tqfwhncg"]
+
+[ext_resource type="Script" uid="uid://ckyn2128syyv7" path="res://Envs/Chase/TargetNode.cs" id="1_6lm8f"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6lm8f"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_a5ajg"]
+size = Vector3(0.2, 0.2, 0.2)
+
+[node name="ChaseTarget" type="Node3D" unique_id=1581189932 node_paths=PackedStringArray("Mesh")]
+script = ExtResource("1_6lm8f")
+Mesh = NodePath("MeshInstance3D")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2061549114]
+material_override = SubResource("StandardMaterial3D_6lm8f")
+mesh = SubResource("BoxMesh_a5ajg")

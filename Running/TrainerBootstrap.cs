@@ -1,6 +1,9 @@
 
+using System;
+using System.IO;
 using Godot;
 using PPO.Envs.Ball;
+using PPO.Envs.Chase;
 
 
 
@@ -11,7 +14,7 @@ namespace PPO.Ppo;
 public partial class TrainerBootstrap : Node
 {
     [Export]
-    private PackedScene _ball;
+    private PackedScene _chaser;
 
     [Export]
     private PackedScene _target;
@@ -25,6 +28,15 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
+    [Export]
+    private string _checkpointName;
+
+    [Export]
+    private bool _loadFromCheckpoint;
+
+    [Export]
+    private bool _saveCheckpoints;
+
 
 
     private PpoTrainer _trainer;
@@ -35,33 +47,52 @@ public partial class TrainerBootstrap : Node
     {
         var rng = new RandomNumberGenerator();
 
-        var balls = new BallNode[_num];
-        var targets = new Node3D[_num];
+        var chasers = new ChaserNode[_num];
+        var targets = new TargetNode[_num];
         for (int i = 0; i < _num; i++)
         {
-            var pos = _start.Position.Lerp(_end.Position, (float)i / (_num - 1));
-            var ball = _ball.Instantiate<BallNode>();
-            pos.Y = rng.RandfRange(_start.Position.Y, _end.Position.Y);
-            ball.Position = pos;
-            AddChild(ball);
-            balls[i] = ball;
+            var hue = 4.0f * (i / 4) / _num;
+            var (up, dn) = (0.85f, 0.5f);
+            var (lightness, saturation) = (i % 4) switch
+            {
+                0 => (up, up),
+                1 => (up, dn),
+                2 => (dn, up),
+                3 => (dn, dn),
+                _ => (0.0f, 0.0f)
+            };
+            var color = Color.FromOkHsl(hue, saturation, lightness);
 
-            var target = _target.Instantiate<Node3D>();
-            pos.Y = (_start.Position.Y + _end.Position.Y) / 2.0f;
-            target.Position = pos;
-            AddChild(target);
+            GD.Print($"{color}");
+
+            var chaser = _chaser.Instantiate<ChaserNode>();
+            chaser.SetColor(color);
+            chasers[i] = chaser;
+            AddChild(chaser);
+
+            var target = _target.Instantiate<TargetNode>();
+            target.SetColor(color);
             targets[i] = target;
+            AddChild(target);
         }
 
-        var env = new BallTrackEnv(balls, targets, b =>
+        var env = new ChaserEnv(chasers, targets, (c, t) =>
         {
-            var pos = b.Position;
-            pos.Y = rng.RandfRange(_start.Position.Y, _end.Position.Y);
-            b.Position = pos;
-            b.LinearVelocity = rng.RandfRange(-2.0f, 2.0f) * Vector3.Up;
-            b.Acceleration = Vector3.Zero;
-            b.age = 0.0f;
+            c.Position = new Vector3(
+                    rng.RandfRange(_start.Position.X, _end.Position.X),
+                    rng.RandfRange(_start.Position.Y, _end.Position.Y),
+                    rng.RandfRange(_start.Position.Z, _end.Position.Z)
+                );
+
+            t.Position = c.Position + new Vector3(rng.RandfRange(-1.5f, 1.5f), 0.0f, -rng.RandfRange(5.0f, 8.0f));
+
+            c.LinearVelocity = Vector3.Zero;
+            c.Acceleration = Vector3.Zero;
+            c.Rotation = Vector3.Zero;
+            c.age = 0.0f;
         });
+
+        env.Reset();
 
         var options = new PpoOptions
         {
@@ -75,13 +106,21 @@ public partial class TrainerBootstrap : Node
             UpdateEpochs = 4,
             AnnealLR = true,
             EntCoef = 0.001,
-            HiddenLayerSizes = [8, 8]
+            HiddenLayerSizes = [32, 32]
         };
 
-        _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath("res://Checkpoints/1d_acc_ball"));
-        _trainer.ResetCount();
-        // _trainer = PpoTrainer.CreateNew(env, options);
-        _trainer.CheckpointPath = ProjectSettings.GlobalizePath("res://Checkpoints/1d_acc_ball");
+        var path = ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _checkpointName));
+        GD.Print(path);
+        if (_loadFromCheckpoint)
+        {
+            _trainer = PpoTrainer.Load(env, options, path);
+            _trainer.ResetCount();
+        }
+        else
+        {
+            _trainer = PpoTrainer.CreateNew(env, options);
+        }
+        _trainer.CheckpointPath = ProjectSettings.GlobalizePath(path);
     }
 
 
@@ -93,7 +132,7 @@ public partial class TrainerBootstrap : Node
             return;
         }
 
-        _trainer.SaveNextUpdate |= Input.IsKeyPressed(Key.Space);
+        _trainer.SaveNextUpdate |= _saveCheckpoints || Input.IsKeyPressed(Key.Space);
 
         _trainer.Tick();
     }
