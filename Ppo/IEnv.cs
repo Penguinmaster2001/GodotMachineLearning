@@ -9,7 +9,9 @@ namespace PPO.Ppo;
 
 public interface IEnv
 {
+    string[] InputLabels { get; }
     long InputSize { get; }
+    string[] OutputLabels { get; }
     long OutputSize { get; }
     int NumEnvs { get; }
 

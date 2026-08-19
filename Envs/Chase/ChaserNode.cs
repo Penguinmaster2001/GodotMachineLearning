@@ -11,10 +11,12 @@ public partial class ChaserNode : RigidBody3D
 {
     private Vector3 _prevVel;
     public Vector3 Acceleration { get; set; }
-    public float age;
+    public float Age;
+    public float Reward;
 
     [Export]
     public float Thrust;
+    public float CurrentThrust;
     public float Throttle;
 
     [Export]
@@ -29,7 +31,8 @@ public partial class ChaserNode : RigidBody3D
     public override void _PhysicsProcess(double delta)
     {
         Acceleration = (LinearVelocity - _prevVel) / (float)delta;
-        age += (float)delta;
+        _prevVel = LinearVelocity;
+        Age += (float)delta;
     }
 
 
@@ -50,6 +53,7 @@ public partial class ChaserNode : RigidBody3D
         ApplyTorque(GlobalBasis * (TurnAuthority * Turning));
 
         Throttle = throttle;
-        ApplyForce(-Basis.Column2 * (Thrust * Throttle));
+        CurrentThrust = Thrust * Throttle;
+        ApplyForce(-Basis.Column2 * CurrentThrust);
     }
 }

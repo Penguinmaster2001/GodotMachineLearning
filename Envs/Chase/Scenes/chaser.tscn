@@ -15,7 +15,7 @@ linear_damp = 0.2
 angular_damp = 0.5
 script = ExtResource("1_hgjol")
 Thrust = 1.0
-TurnAuthority = Vector3(0.2, 0, 0.2)
+TurnAuthority = Vector3(0.2, 0, 0)
 Mesh = NodePath("Drone")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=211362281]

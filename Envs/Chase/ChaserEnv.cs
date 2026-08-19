@@ -19,14 +19,19 @@ public class ChaserEnv : IEnv
     /// 3: Vector3 local acc
     /// 3: Vector3 local angular vel
     /// 3: Vector3 to target in local frame
+    /// 1: current throttle
+    /// 1: current thrust
+    /// 3: current attitude
     /// </summary>
-    public long InputSize => 3 + 3 + 3 + 3;
+    public string[] InputLabels { get; } = ["velX", "velY", "velZ", "accX", "accY", "accZ", "Dpch", "Drol", "Dyaw", "tgtX", "tgtY", "tgtZ", "thtl", "thst", "pich", "roll", "yaww"];
+    public long InputSize => 3 + 3 + 3 + 3 + 1 + 1 + 3;
 
     /// <summary>
     /// 4
     /// 1: throttle
     /// 3: pitch, roll, yaw
     /// </summary>
+    public string[] OutputLabels { get; } = ["thtl", "pich", "roll", "yaww"];
     public long OutputSize => 1 + 3;
 
     public int NumEnvs => _chasers.Length;
@@ -36,7 +41,7 @@ public class ChaserEnv : IEnv
     private readonly int[] _stepCounts;
     private readonly Action<ChaserNode, TargetNode> _reset;
 
-    
+
     private int _maxSteps = 1024;
     private float _targetTolerance = 0.5f;
 
@@ -107,7 +112,7 @@ public class ChaserEnv : IEnv
 
             reward[i] = (angle / 30.0f) - MathF.Abs(dist / 5.0f) - 0.01f;
 
-            bool reachedTarget = MathF.Abs(dist) < _targetTolerance;;
+            bool reachedTarget = MathF.Abs(dist) < _targetTolerance; ;
             bool timedOut = _stepCounts[i] >= _maxSteps;
 
             terminated[i] = reachedTarget || !inFront;
@@ -122,6 +127,8 @@ public class ChaserEnv : IEnv
             {
                 reward[i] -= 10.0f;
             }
+
+            _chasers[i].Reward = reward[i];
         }
 
         return (torch.tensor(reward), torch.tensor(terminated), torch.tensor(truncated));
@@ -153,18 +160,21 @@ public class ChaserEnv : IEnv
         var localRot = inverseBasis * chaser.AngularVelocity;
         var localToTarget = inverseBasis * (_targets[i].GlobalPosition - chaser.GlobalPosition);
 
-        FillVec3(obs, i, 0, localVel);
-        FillVec3(obs, i, 1, localAcc);
-        FillVec3(obs, i, 2, localRot);
-        FillVec3(obs, i, 3, localToTarget);
+        FillVec3(obs, i, 0, 0, localVel);
+        FillVec3(obs, i, 1, 0, localAcc);
+        FillVec3(obs, i, 2, 0, localRot);
+        FillVec3(obs, i, 3, 0, localToTarget);
+        obs[i, 12] = chaser.Throttle;
+        obs[i, 13] = chaser.CurrentThrust;
+        FillVec3(obs, i, 4, 2, chaser.Turning);
     }
 
 
 
-    private void FillVec3(float[,] obs, int i, int j, Vector3 vec)
+    private void FillVec3(float[,] obs, int i, int j, int offset, Vector3 vec)
     {
-        obs[i, (j * 3) + 0] = vec.X;
-        obs[i, (j * 3) + 1] = vec.Y;
-        obs[i, (j * 3) + 2] = vec.Z;
+        obs[i, (j * 3) + 0 + offset] = vec.X;
+        obs[i, (j * 3) + 1 + offset] = vec.Y;
+        obs[i, (j * 3) + 2 + offset] = vec.Z;
     }
 }

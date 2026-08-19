@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://dfk04ac1klsn3" path="res://Running/TrainerBootstrap.cs" id="1_nslsp"]
 [ext_resource type="PackedScene" uid="uid://b4ynaae25g7so" path="res://Envs/Chase/Scenes/chaser.tscn" id="2_cnw6l"]
 [ext_resource type="PackedScene" uid="uid://d3sd8tqfwhncg" path="res://Envs/Chase/Scenes/chase_target.tscn" id="3_d7n3c"]
+[ext_resource type="PackedScene" uid="uid://86wk0xlevwts" path="res://Envs/Chase/Scenes/result_indicator.tscn" id="4_cnw6l"]
+[ext_resource type="PackedScene" uid="uid://bjrvshgs0hhyl" path="res://Scenes/Ui/agent_ui.tscn" id="5_d7n3c"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
 shading_mode = 0
@@ -22,23 +24,36 @@ material = SubResource("StandardMaterial3D_nslsp")
 radius = 0.1
 height = 0.2
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_d7n3c"]
+sky_top_color = Color(0.175, 0.39375004, 0.7, 1)
+sky_horizon_color = Color(0.49580002, 0.56257665, 0.67, 1)
+ground_bottom_color = Color(0.0940895, 0.1916259, 0.21233389, 1)
+ground_horizon_color = Color(0.49411765, 0.56078434, 0.67058825, 1)
+
+[sub_resource type="Sky" id="Sky_cnw6l"]
+sky_material = SubResource("ProceduralSkyMaterial_d7n3c")
+
 [sub_resource type="Environment" id="Environment_a5ajg"]
-background_mode = 1
-background_energy_multiplier = 0.0
+background_mode = 2
+background_color = Color(0.7957566, 0.7957565, 0.7957566, 1)
+sky = SubResource("Sky_cnw6l")
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 reflected_light_source = 1
 tonemap_mode = 4
 
-[node name="ChaserEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end")]
+[node name="ChaserEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end", "_ui", "_followCam", "_observeCam")]
 script = ExtResource("1_nslsp")
 _chaser = ExtResource("2_cnw6l")
 _target = ExtResource("3_d7n3c")
-_num = 128
+_resultIndicator = ExtResource("4_cnw6l")
+_num = 512
 _start = NodePath("First")
 _end = NodePath("Second")
+_ui = NodePath("AgentUi")
+_followCam = NodePath("FollowCam")
+_observeCam = NodePath("WatchCam")
 _checkpointName = "3d_chaser_line"
-_loadFromCheckpoint = true
 _saveCheckpoints = true
 
 [node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
@@ -55,7 +70,11 @@ transform = Transform3D(0.9189263, 0.124524325, 0.37425688, -0.39442942, 0.29011
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=486263588]
 environment = SubResource("Environment_a5ajg")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=1863966396]
+[node name="WatchCam" type="Camera3D" parent="." unique_id=1863966396]
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -125, 0, 0)
 projection = 1
 size = 60.0
+
+[node name="FollowCam" type="Camera3D" parent="." unique_id=1994865595]
+
+[node name="AgentUi" parent="." unique_id=797787089 instance=ExtResource("5_d7n3c")]

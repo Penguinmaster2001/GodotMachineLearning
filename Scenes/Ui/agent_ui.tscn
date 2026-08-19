@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://bjrvshgs0hhyl"]
+
+[ext_resource type="Script" uid="uid://dl66cepf5ian1" path="res://Envs/Chase/AgentUi.cs" id="1_j8ges"]
+
+[sub_resource type="SystemFont" id="SystemFont_i57lb"]
+font_names = PackedStringArray("Monospace")
+
+[sub_resource type="Theme" id="Theme_j8ges"]
+default_font = SubResource("SystemFont_i57lb")
+
+[node name="AgentUi" type="Control" unique_id=797787089 node_paths=PackedStringArray("_inputs", "_outputs", "_reward")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_j8ges")
+script = ExtResource("1_j8ges")
+_inputs = NodePath("Inputs")
+_outputs = NodePath("Outputs")
+_reward = NodePath("Reward")
+
+[node name="Inputs" type="Label" parent="." unique_id=430553744]
+layout_mode = 0
+offset_left = 13.0
+offset_top = 31.0
+offset_right = 179.0
+offset_bottom = 106.0
+text = "Input"
+
+[node name="Reward" type="Label" parent="." unique_id=1236188897]
+layout_mode = 0
+offset_left = 645.0
+offset_top = -1.0
+offset_right = 811.0
+offset_bottom = 74.0
+text = "Reward"
+
+[node name="Outputs" type="Label" parent="." unique_id=2046999127]
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 15.0
+offset_right = 1416.0
+offset_bottom = 90.0
+text = "Output"

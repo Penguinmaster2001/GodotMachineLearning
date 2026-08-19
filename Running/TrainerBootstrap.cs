@@ -1,5 +1,5 @@
 
-using System;
+using System.Collections.Generic;
 using System.IO;
 using Godot;
 using PPO.Envs.Ball;
@@ -20,6 +20,9 @@ public partial class TrainerBootstrap : Node
     private PackedScene _target;
 
     [Export]
+    private PackedScene _resultIndicator;
+
+    [Export]
     private int _num;
 
     [Export]
@@ -27,6 +30,26 @@ public partial class TrainerBootstrap : Node
 
     [Export]
     private Node3D _end;
+
+    private List<ChaserNode> _chasers;
+    private List<TargetNode> _targets;
+
+    [Export]
+    private AgentUi _ui;
+
+    [Export]
+    private Camera3D _followCam;
+
+    [Export]
+    private Camera3D _observeCam;
+
+    private enum CameraMode
+    {
+        Observe,
+        Follow,
+    }
+
+    private CameraMode _currentCameraMode = CameraMode.Observe;
 
     [Export]
     private string _checkpointName;
@@ -47,8 +70,8 @@ public partial class TrainerBootstrap : Node
     {
         var rng = new RandomNumberGenerator();
 
-        var chasers = new ChaserNode[_num];
-        var targets = new TargetNode[_num];
+        _chasers = new(_num);
+        _targets = new(_num);
         for (int i = 0; i < _num; i++)
         {
             var hue = 4.0f * (i / 4) / _num;
@@ -63,40 +86,47 @@ public partial class TrainerBootstrap : Node
             };
             var color = Color.FromOkHsl(hue, saturation, lightness);
 
-            GD.Print($"{color}");
-
             var chaser = _chaser.Instantiate<ChaserNode>();
             chaser.SetColor(color);
-            chasers[i] = chaser;
+            _chasers.Add(chaser);
             AddChild(chaser);
 
             var target = _target.Instantiate<TargetNode>();
             target.SetColor(color);
-            targets[i] = target;
+            _targets.Add(target);
             AddChild(target);
         }
+        RemoveChild(_followCam);
+        _chasers[0].AddChild(_followCam);
+        _followCam.Position = new(0.0f, 0.0f, 3.0f);
 
-        var env = new ChaserEnv(chasers, targets, (c, t) =>
+        var env = new ChaserEnv([.. _chasers], [.. _targets], (c, t) =>
         {
+            var indicator = _resultIndicator.Instantiate<ResultIndicator>();
+            indicator.Position = c.Position;
+            indicator.SetColor(c.Reward > 0.0f ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
+            AddChild(indicator);
+
             c.Position = new Vector3(
                     rng.RandfRange(_start.Position.X, _end.Position.X),
                     rng.RandfRange(_start.Position.Y, _end.Position.Y),
                     rng.RandfRange(_start.Position.Z, _end.Position.Z)
                 );
 
-            t.Position = c.Position + new Vector3(rng.RandfRange(-1.5f, 1.5f), 0.0f, -rng.RandfRange(5.0f, 8.0f));
+            t.Position = c.Position + new Vector3(0.0f, rng.RandfRange(-0.5f, 0.5f), -rng.RandfRange(5.0f, 8.0f));
 
             c.LinearVelocity = Vector3.Zero;
             c.Acceleration = Vector3.Zero;
+            c.AngularVelocity = Vector3.Zero;
             c.Rotation = Vector3.Zero;
-            c.age = 0.0f;
+            c.Age = 0.0f;
         });
 
         env.Reset();
 
         var options = new PpoOptions
         {
-            UseCuda = false,
+            UseCuda = true,
             NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
@@ -121,6 +151,9 @@ public partial class TrainerBootstrap : Node
             _trainer = PpoTrainer.CreateNew(env, options);
         }
         _trainer.CheckpointPath = ProjectSettings.GlobalizePath(path);
+
+        _ui.Env = env;
+        _ui.Agent = _trainer.Agent;
     }
 
 
@@ -135,5 +168,25 @@ public partial class TrainerBootstrap : Node
         _trainer.SaveNextUpdate |= _saveCheckpoints || Input.IsKeyPressed(Key.Space);
 
         _trainer.Tick();
+    }
+
+
+
+    public override void _Input(InputEvent input)
+    {
+        if (input is InputEventKey { Pressed: true, Keycode: Key.Space })
+        {
+            switch (_currentCameraMode)
+            {
+                case CameraMode.Follow:
+                    _observeCam.MakeCurrent();
+                    _currentCameraMode = CameraMode.Observe;
+                    break;
+                case CameraMode.Observe:
+                    _followCam.MakeCurrent();
+                    _currentCameraMode = CameraMode.Follow;
+                    break;
+            }
+        }
     }
 }

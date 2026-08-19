@@ -12,7 +12,9 @@ namespace PPO.Envs.Ball;
 
 public class BallTrackEnv : IEnv
 {
+    public string[] InputLabels => [];
     public long InputSize => 3;
+    public string[] OutputLabels => [];
     public long OutputSize => 1;
     public int NumEnvs => _balls.Length;
 

@@ -21,7 +21,7 @@ public class PpoTrainer
     private DeviceType _device;
     private readonly IEnv _env;
     private readonly PpoOptions _args;
-    private readonly Agent _agent;
+    public readonly Agent Agent;
     private readonly OptimizerHelper _optimizer;
     private readonly Random _rng;
 
@@ -77,7 +77,7 @@ public class PpoTrainer
 
         Console.WriteLine(_device);
 
-        _agent = agent.to(_device);
+        Agent = agent.to(_device);
         _optimizer = torch.optim.Adam(agent.parameters(), lr: _args.LearningRate, eps: 1e-5);
 
         _obs = torch.zeros([args.NumSteps, args.NumEnvs, env.InputSize]).to(_device);
@@ -147,7 +147,7 @@ public class PpoTrainer
         torch.Tensor action, logProb, value;
         using (torch.no_grad())
         {
-            (action, logProb, _, value) = _agent.GetActionAndValue(_currentObs);
+            (action, logProb, _, value) = Agent.GetActionAndValue(_currentObs);
             _values[_stepIndex] = value.flatten();
         }
 
@@ -193,7 +193,7 @@ public class PpoTrainer
 
         using (torch.no_grad())
         {
-            var nextValue = _agent.GetValue(_currentObs).view(-1);
+            var nextValue = Agent.GetValue(_currentObs).view(-1);
             advantages = torch.zeros_like(_rewards).to(_device);
             var lastGaeLam = torch.zeros_like(_currentDone);
 
@@ -242,7 +242,7 @@ public class PpoTrainer
                 var mbObs = bObs.index_select(0, mbInds);
                 var mbActions = bActions.index_select(0, mbInds);
 
-                var (_, newLogProb, entropy, newValueRaw) = _agent.GetActionAndValue(mbObs, mbActions);
+                var (_, newLogProb, entropy, newValueRaw) = Agent.GetActionAndValue(mbObs, mbActions);
                 var logRatio = newLogProb - bLogProbs.index_select(0, mbInds);
                 var ratio = logRatio.exp();
 
@@ -282,7 +282,7 @@ public class PpoTrainer
 
                 _optimizer.zero_grad();
                 loss.backward();
-                torch.nn.utils.clip_grad_norm_(_agent.parameters(), args.MaxGradNorm);
+                torch.nn.utils.clip_grad_norm_(Agent.parameters(), args.MaxGradNorm);
                 _optimizer.step();
             }
 
@@ -299,10 +299,12 @@ public class PpoTrainer
         var explainedVar = varY.item<float>() == 0
             ? float.NaN
             : 1 - (yTrue - yPred).var().item<float>() / varY.item<float>();
+        var aveStepReward = _rewards.mean().item<float>();
         Console.WriteLine($"\nupdate={_updateIndex + 1} global_step={_globalStep} SPS={sps} " +
                           $"pg_loss={pgLoss?.item<float>():F4} v_loss={vLoss?.item<float>():F4} " +
                           $"approx_kl={approxKl?.item<float>():F4} " +
-                          $"explained_variance={explainedVar:F4}");
+                          $"explained_variance={explainedVar:F4} " +
+                          $"ave_reward={aveStepReward:F4}");
     }
 
 
@@ -329,7 +331,7 @@ public class PpoTrainer
 
         Console.WriteLine($"Saving to {path}");
 
-        _agent.save($"{path}.agent.dat");
+        Agent.save($"{path}.agent.dat");
 
         using var writer = new BinaryWriter(File.OpenWrite($"{path}.meta.dat"));
         writer.Write(_updateIndex);
@@ -341,6 +343,6 @@ public class PpoTrainer
     public void ResetCount()
     {
         _updateIndex = 0;
-        _agent.LogStd = torch.nn.Parameter(torch.zeros(_env.OutputSize));
+        Agent.LogStd = torch.nn.Parameter(torch.zeros(_env.OutputSize));
     }
 }

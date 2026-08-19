@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://86wk0xlevwts"]
+
+[ext_resource type="Script" uid="uid://bkkmpy036gmhn" path="res://Envs/Chase/ResultIndicator.cs" id="1_5fanb"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_6hpst"]
+size = Vector3(0.1, 0.1, 0.1)
+
+[node name="ResultIndicator" type="MeshInstance3D" unique_id=1992830784]
+mesh = SubResource("BoxMesh_6hpst")
+script = ExtResource("1_5fanb")
