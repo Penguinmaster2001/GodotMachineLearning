@@ -68,7 +68,7 @@ public partial class AgentUi : Control
 
         _inputLabel.Text = $"{inputVals}";
         _outputLabel.Text = $"{actionVals}";
-        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}";
+        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}\nagee: {Chaser.Age,10:00.0000}\ndist: {Chaser.GlobalPosition.DistanceTo(Target.GlobalPosition),10:00.0000}\nstrk: {Chaser.HitStreak,10:00.0000}";
         _statsLabel.Text = $"{stats}";
     }
 }

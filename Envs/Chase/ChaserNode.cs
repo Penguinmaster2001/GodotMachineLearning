@@ -13,6 +13,7 @@ public partial class ChaserNode : RigidBody3D
     public Vector3 Acceleration { get; set; }
     public float Age;
     public float Reward;
+    public int HitStreak = 0;
 
     [Export]
     public float Thrust;

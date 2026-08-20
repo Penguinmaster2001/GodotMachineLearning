@@ -118,10 +118,20 @@ public partial class TrainerBootstrap : Node
 
         var env = new ChaserEnv([.. _chasers], [.. _targets], (c, t) =>
         {
+            var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 30.0f;
             var indicator = _resultIndicator.Instantiate<ResultIndicator>();
             indicator.Position = c.Position;
-            indicator.SetColor(c.Reward > 0.0f ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
+            indicator.SetColor(success ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
             AddChild(indicator);
+
+            if (success)
+            {
+                c.HitStreak++;
+            }
+            else
+            {
+                c.HitStreak = 0;
+            }
 
             c.Position = new Vector3(
                     rng.RandfRange(_start.Position.X, _end.Position.X),
@@ -129,13 +139,12 @@ public partial class TrainerBootstrap : Node
                     rng.RandfRange(_start.Position.Z, _end.Position.Z)
                 );
 
-            var dist = rng.RandfRange(-100.0f, 100.0f);
-            t.Position = c.Position + new Vector3(rng.RandfRange(-1.0f, 1.0f) * dist, rng.RandfRange(-1.0f, 1.0f) * dist, dist);
+            t.Position = c.Position + RandVector3(rng, -500.0f, 500.0f);
 
-            c.LinearVelocity = Vector3.Zero;
+            c.LinearVelocity = 30.0f * RandVector3(rng);
             c.Acceleration = Vector3.Zero;
-            c.AngularVelocity = Vector3.Zero;
-            c.Rotation = Vector3.Zero;
+            c.AngularVelocity = 5.0f * RandVector3(rng);
+            c.Rotation = Mathf.Tau * RandVector3(rng);
             c.Age = 0.0f;
         });
 
@@ -170,7 +179,18 @@ public partial class TrainerBootstrap : Node
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
         _ui.Stats = _trainer.Stats;
+        _ui.Chaser = _chasers[0];
+        _ui.Target = _targets[0];
     }
+
+
+
+    private static Vector3 RandVector3(RandomNumberGenerator rng, float min = -1.0f, float max = 1.0f)
+    {
+        return new(rng.RandfRange(min, max), rng.RandfRange(min, max), rng.RandfRange(min, max));
+    }
+
+
 
     public override void _PhysicsProcess(double delta)
     {

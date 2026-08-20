@@ -42,8 +42,8 @@ public class ChaserEnv : IEnv
     private readonly Action<ChaserNode, TargetNode> _reset;
 
 
-    private int _maxSteps = 2048;
-    private float _targetTolerance = 1.0f;
+    private int _maxSteps = 3072;
+    private float _targetTolerance = 30.0f;
 
 
 
@@ -110,8 +110,12 @@ public class ChaserEnv : IEnv
 
             const float stepPenalty = 0.5f;
             var inputPenalty = (_chasers[i].Turning.LengthSquared() + (_chasers[i].Throttle * _chasers[i].Throttle)) / 2.0f;
-            var distancePenalty = dist / 50.0f;
-            reward[i] = -inputPenalty - distancePenalty - stepPenalty;
+            var spinPenalty = _chasers[i].AngularVelocity.LengthSquared() * 3.0f;
+            var distancePenalty = dist / 200.0f;
+            var speedIncentive = _chasers[i].LinearVelocity.Project(_targets[i].GlobalPosition - _chasers[i].GlobalPosition).Length() / 20.0f;
+            speedIncentive *= speedIncentive < 0.0f ? 1.0f : 2.0f;
+            speedIncentive -= 4.0f;
+            reward[i] = speedIncentive - (inputPenalty + distancePenalty + stepPenalty + spinPenalty);
 
             bool reachedTarget = dist < _targetTolerance;
             bool timedOut = _stepCounts[i] >= _maxSteps;
@@ -121,7 +125,7 @@ public class ChaserEnv : IEnv
 
             if (reachedTarget)
             {
-                reward[i] += 2.0f * stepPenalty * _maxSteps;
+                reward[i] += 10.0f * stepPenalty * _maxSteps;
             }
 
             _chasers[i].Reward = reward[i];
