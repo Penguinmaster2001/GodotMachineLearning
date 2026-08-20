@@ -42,8 +42,8 @@ public class ChaserEnv : IEnv
     private readonly Action<ChaserNode, TargetNode> _reset;
 
 
-    private int _maxSteps = 1024;
-    private float _targetTolerance = 0.5f;
+    private int _maxSteps = 2048;
+    private float _targetTolerance = 1.0f;
 
 
 
@@ -87,7 +87,7 @@ public class ChaserEnv : IEnv
     {
         for (int i = 0; i < NumEnvs; i++)
         {
-            var throttle = Mathf.Clamp(action[i, 0].item<float>(), 0.0f, 1.0f);
+            var throttle = action[i, 0].item<float>();
             var turning = new Vector3(action[i, 1].item<float>(), action[i, 2].item<float>(), action[i, 3].item<float>());
 
             _chasers[i].UpdateControls(throttle, turning);
@@ -107,25 +107,21 @@ public class ChaserEnv : IEnv
             _stepCounts[i]++;
 
             float dist = _targets[i].GlobalPosition.DistanceTo(_chasers[i].GlobalPosition);
-            var angle = _chasers[i].LinearVelocity.AngleTo(_targets[i].GlobalPosition - _chasers[i].GlobalPosition);
-            var inFront = Mathf.RadToDeg(angle) < 45.0f;
 
-            reward[i] = (angle / 30.0f) - MathF.Abs(dist / 5.0f) - 0.01f;
+            const float stepPenalty = 0.5f;
+            var inputPenalty = (_chasers[i].Turning.LengthSquared() + (_chasers[i].Throttle * _chasers[i].Throttle)) / 2.0f;
+            var distancePenalty = dist / 50.0f;
+            reward[i] = -inputPenalty - distancePenalty - stepPenalty;
 
-            bool reachedTarget = MathF.Abs(dist) < _targetTolerance; ;
+            bool reachedTarget = dist < _targetTolerance;
             bool timedOut = _stepCounts[i] >= _maxSteps;
 
-            terminated[i] = reachedTarget || !inFront;
-            truncated[i] = timedOut && !reachedTarget && inFront;
+            terminated[i] = reachedTarget;
+            truncated[i] = timedOut && !reachedTarget;
 
             if (reachedTarget)
             {
-                reward[i] += 20.0f;
-            }
-
-            if (!inFront)
-            {
-                reward[i] -= 10.0f;
+                reward[i] += 2.0f * stepPenalty * _maxSteps;
             }
 
             _chasers[i].Reward = reward[i];

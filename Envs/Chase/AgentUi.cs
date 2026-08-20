@@ -1,6 +1,7 @@
 
 using System.Text;
 using Godot;
+using PPO.Benchmarking;
 using PPO.Envs.Ball;
 using PPO.Ppo;
 
@@ -17,15 +18,19 @@ public partial class AgentUi : Control
 
     public IEnv Env;
     public Agent Agent;
+    public IReadOnlyStats Stats;
 
     [Export]
-    private Label _inputs;
+    private Label _inputLabel;
 
     [Export]
-    private Label _outputs;
+    private Label _outputLabel;
 
     [Export]
-    private Label _reward;
+    private Label _rewardLabel;
+
+    [Export]
+    private Label _statsLabel;
 
 
 
@@ -55,8 +60,15 @@ public partial class AgentUi : Control
             actionVals.AppendLine($"{Env.OutputLabels[i]}: {actionData[0, i],10:00.0000}");
         }
 
-        _inputs.Text = $"{inputVals}";
-        _outputs.Text = $"{actionVals}";
-        _reward.Text = $"rewd: {reward[0].item<float>(),10:00.0000}";
+        var stats = new StringBuilder();
+        foreach (var stat in Stats.StatNames)
+        {
+            stats.AppendLine($"{stat.Key}: {stat.Value.val,10:00.0000} {stat.Value.ave,10:00.0000}");
+        }
+
+        _inputLabel.Text = $"{inputVals}";
+        _outputLabel.Text = $"{actionVals}";
+        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}";
+        _statsLabel.Text = $"{stats}";
     }
 }

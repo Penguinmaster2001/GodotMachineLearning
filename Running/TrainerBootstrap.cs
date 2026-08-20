@@ -52,6 +52,22 @@ public partial class TrainerBootstrap : Node
     private CameraMode _currentCameraMode = CameraMode.Observe;
 
     [Export]
+    private long _updateFramePeriod = 5;
+    private long _updateCount = 0;
+
+
+    [Export]
+    private string _loadCheckpointName;
+
+    [Export]
+    public string CheckpointName
+    {
+        get => _checkpointName; set
+        {
+            _checkpointName = value;
+            _trainer?.CheckpointPath = ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _checkpointName));
+        }
+    }
     private string _checkpointName;
 
     [Export]
@@ -113,7 +129,8 @@ public partial class TrainerBootstrap : Node
                     rng.RandfRange(_start.Position.Z, _end.Position.Z)
                 );
 
-            t.Position = c.Position + new Vector3(0.0f, rng.RandfRange(-0.5f, 0.5f), -rng.RandfRange(5.0f, 8.0f));
+            var dist = rng.RandfRange(-100.0f, 100.0f);
+            t.Position = c.Position + new Vector3(rng.RandfRange(-1.0f, 1.0f) * dist, rng.RandfRange(-1.0f, 1.0f) * dist, dist);
 
             c.LinearVelocity = Vector3.Zero;
             c.Acceleration = Vector3.Zero;
@@ -139,24 +156,21 @@ public partial class TrainerBootstrap : Node
             HiddenLayerSizes = [32, 32]
         };
 
-        var path = ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _checkpointName));
-        GD.Print(path);
         if (_loadFromCheckpoint)
         {
-            _trainer = PpoTrainer.Load(env, options, path);
+            _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _loadCheckpointName)));
             _trainer.ResetCount();
         }
         else
         {
             _trainer = PpoTrainer.CreateNew(env, options);
         }
-        _trainer.CheckpointPath = ProjectSettings.GlobalizePath(path);
+        _trainer.CheckpointPath = ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _checkpointName));
 
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
+        _ui.Stats = _trainer.Stats;
     }
-
-
 
     public override void _PhysicsProcess(double delta)
     {
@@ -167,7 +181,11 @@ public partial class TrainerBootstrap : Node
 
         _trainer.SaveNextUpdate |= _saveCheckpoints || Input.IsKeyPressed(Key.Space);
 
-        _trainer.Tick();
+        _updateCount++;
+        if (_updateCount % _updateFramePeriod == 0)
+        {
+            _trainer.Tick();
+        }
     }
 
 

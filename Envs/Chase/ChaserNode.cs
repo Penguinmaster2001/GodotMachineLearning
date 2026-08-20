@@ -16,11 +16,17 @@ public partial class ChaserNode : RigidBody3D
 
     [Export]
     public float Thrust;
+
+    [Export]
+    public Vector2 ThrottleLimits;
     public float CurrentThrust;
     public float Throttle;
 
     [Export]
     public Vector3 TurnAuthority;
+
+    [Export]
+    public Vector3 TurnLimits;
     public Vector3 Turning;
 
     [Export]
@@ -33,6 +39,9 @@ public partial class ChaserNode : RigidBody3D
         Acceleration = (LinearVelocity - _prevVel) / (float)delta;
         _prevVel = LinearVelocity;
         Age += (float)delta;
+        
+        ApplyTorque(GlobalBasis * (TurnAuthority * Turning));
+        ApplyForce(-Basis.Column2 * CurrentThrust);
     }
 
 
@@ -49,11 +58,9 @@ public partial class ChaserNode : RigidBody3D
 
     public void UpdateControls(float throttle, Vector3 turning)
     {
-        Turning = turning;
-        ApplyTorque(GlobalBasis * (TurnAuthority * Turning));
+        Turning = (turning / 4.0f).Clamp(-TurnLimits, TurnLimits);
 
-        Throttle = throttle;
+        Throttle = Mathf.Clamp(throttle / 4.0f, ThrottleLimits.X, ThrottleLimits.Y);
         CurrentThrust = Thrust * Throttle;
-        ApplyForce(-Basis.Column2 * CurrentThrust);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using PPO.Benchmarking;
@@ -27,6 +28,10 @@ public class PpoTrainer
 
     private readonly torch.Tensor _obs, _actions, _logProbs, _rewards, _dones, _values;
 
+    private readonly float[] _episodeReturnAccum; // running per-env sum, reset on episode end
+    private readonly List<float> _completedReturns = []; // finished episodes' totals, reset each update
+    private int _successCount = 0;
+
     private torch.Tensor _currentObs;
     private torch.Tensor _currentDone;
 
@@ -40,6 +45,9 @@ public class PpoTrainer
 
     public string CheckpointPath = null;
     public bool SaveNextUpdate = false;
+
+    public IReadOnlyStats Stats => _stats;
+    private readonly Stats _stats = new();
 
 
 
@@ -79,6 +87,8 @@ public class PpoTrainer
 
         Agent = agent.to(_device);
         _optimizer = torch.optim.Adam(agent.parameters(), lr: _args.LearningRate, eps: 1e-5);
+
+        _episodeReturnAccum = new float[_args.NumEnvs];
 
         _obs = torch.zeros([args.NumSteps, args.NumEnvs, env.InputSize]).to(_device);
         _actions = torch.zeros([args.NumSteps, args.NumEnvs, env.OutputSize]).to(_device);
@@ -171,8 +181,18 @@ public class PpoTrainer
 
         for (int i = 0; i < _args.NumEnvs; i++)
         {
+            _episodeReturnAccum[i] += reward[i].item<float>();
+
             if (done[i].item<float>() > 0.5f)
             {
+                _completedReturns.Add(_episodeReturnAccum[i]);
+                _episodeReturnAccum[i] = 0f;
+                
+                if (reward[i].item<float>() > 0.0f)
+                {
+                    _successCount++;
+                }
+
                 _env.ResetEnv(i);
             }
         }
@@ -299,12 +319,32 @@ public class PpoTrainer
         var explainedVar = varY.item<float>() == 0
             ? float.NaN
             : 1 - (yTrue - yPred).var().item<float>() / varY.item<float>();
-        var aveStepReward = _rewards.mean().item<float>();
+        float aveStepReward = _rewards.mean().item<float>();
+        float aveEpisodeReturn = _completedReturns.Count > 0 ? _completedReturns.Average() : float.NaN;
+        float successRate = _completedReturns.Count > 0
+            ? _successCount / (float)_completedReturns.Count
+            : float.NaN;
         Console.WriteLine($"\nupdate={_updateIndex + 1} global_step={_globalStep} SPS={sps} " +
                           $"pg_loss={pgLoss?.item<float>():F4} v_loss={vLoss?.item<float>():F4} " +
                           $"approx_kl={approxKl?.item<float>():F4} " +
                           $"explained_variance={explainedVar:F4} " +
-                          $"ave_reward={aveStepReward:F4}");
+                          $"ave_reward={aveStepReward:F4}" +
+                          $"success_rate={successRate:P1} " +
+                          $"episodes={_completedReturns.Count}");
+
+        _stats.Add("update", _updateIndex);
+        _stats.Add("global_step", _globalStep);
+        _stats.Add("sps", sps);
+        _stats.Add("pg_loss", pgLoss?.item<float>() ?? 0.0f);
+        _stats.Add("v_loss", vLoss?.item<float>() ?? 0.0f);
+        _stats.Add("approx_kl", approxKl?.item<float>() ?? 0.0f);
+        _stats.Add("explained_variance", explainedVar);
+        _stats.Add("ave_reward", aveStepReward);
+        _stats.Add("success_rate", successRate);
+        _stats.Add("episodes", _completedReturns.Count);
+
+        _completedReturns.Clear();
+        _successCount = 0;
     }
 
 
