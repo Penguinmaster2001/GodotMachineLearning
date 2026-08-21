@@ -6,11 +6,11 @@ using Godot;
 
 
 
-namespace PPO.Aero.Controls;
+namespace PPO.Aero.Arcade;
 
 
 
-public partial class PlayerController : Node, IControlSource
+public partial class ArcadeController : Node
 {
     [Export]
     public float ThrottleResponse;
@@ -26,7 +26,7 @@ public partial class PlayerController : Node, IControlSource
 
 
 
-    public void Update(AeroState state)
+    public void Update(float deltaTime)
     {
         // state.SpoilerInput = 0.0f;
         // if (Input.IsActionPressed("spoilers"))
@@ -70,24 +70,24 @@ public partial class PlayerController : Node, IControlSource
         SetChannel("roll", Input.GetAxis("roll_left", "roll_right"));
         SetChannel("yaw", Input.GetAxis("yaw_right", "yaw_left"));
 
-        ThrustInput(state);
+        ThrustInput(deltaTime);
     }
 
 
 
-    private void ThrustInput(AeroState state)
+    private void ThrustInput(float deltaTime)
     {
         if (Input.IsActionPressed("throttle_up"))
         {
-            ModChannel("throttle", t => t + ThrottleResponse * state.DeltaTime);
+            ModChannel("throttle", t => t + ThrottleResponse * deltaTime);
         }
 
         if (Input.IsActionPressed("throttle_down"))
         {
-            ModChannel("throttle", t => t - ThrottleResponse * state.DeltaTime);
+            ModChannel("throttle", t => t - ThrottleResponse * deltaTime);
         }
 
-        ModChannel("throttle", t => t + Input.GetActionStrength("throttle_axis") * ThrottleResponse * state.DeltaTime);
+        ModChannel("throttle", t => t + Input.GetActionStrength("throttle_axis") * ThrottleResponse * deltaTime);
 
         if (Input.IsPhysicalKeyPressed(Key.X))
         {
@@ -136,5 +136,12 @@ public partial class PlayerController : Node, IControlSource
         {
             _state.Add(0.0f);
         }
+    }
+
+
+
+    public float GetChannel(string channel)
+    {
+        return _state[_channelToId[channel]];
     }
 }

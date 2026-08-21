@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://db7fjpip3rhk4"]
+
+[ext_resource type="Script" uid="uid://twkihgo1y6hy" path="res://Envs/Aero/ArcadeTestEnv.cs" id="1_pnef8"]
+[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="2_rqulq"]
+[ext_resource type="Script" uid="uid://pqbi1626ra36" path="res://Aero/Arcade/ArcadeController.cs" id="3_ndqsx"]
+[ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="5_88k6b"]
+[ext_resource type="PackedScene" uid="uid://c1yx2hwjxc7jo" path="res://Envs/Aero/Scenes/arcade_airplane.tscn" id="5_ndqsx"]
+
+[sub_resource type="Environment" id="Environment_a5ajg"]
+background_mode = 2
+sky = ExtResource("2_rqulq")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_a5ajg"]
+size = Vector2(5000, 5000)
+
+[sub_resource type="Gradient" id="Gradient_8xyc8"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_2stmt"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_7bw1u"]
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_2stmt")
+color_ramp = SubResource("Gradient_8xyc8")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
+albedo_color = Color(0.37855995, 0.56, 0.25759998, 1)
+albedo_texture = SubResource("NoiseTexture2D_7bw1u")
+
+[node name="AeroTestEnv" type="Node3D" unique_id=446825272 node_paths=PackedStringArray("Aircraft", "ArcadeController")]
+script = ExtResource("1_pnef8")
+Aircraft = NodePath("ArcadeAirplane")
+ArcadeController = NodePath("PlayerController")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=878329285]
+environment = SubResource("Environment_a5ajg")
+
+[node name="PlayerController" type="Node" parent="." unique_id=286264307]
+script = ExtResource("3_ndqsx")
+ThrottleResponse = 1.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1437331745]
+mesh = SubResource("PlaneMesh_a5ajg")
+surface_material_override/0 = SubResource("StandardMaterial3D_gla0r")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1403518160]
+transform = Transform3D(1, 0, 0, 0, 0.7933533, 0.6087614, 0, -0.6087614, 0.7933533, 0, 0, 0)
+
+[node name="CameraFollowsRigidbody" parent="." unique_id=594315423 node_paths=PackedStringArray("_toFollow") instance=ExtResource("5_88k6b")]
+_toFollow = NodePath("../ArcadeAirplane")
+_followOffset = Vector3(0, 0, 1.5)
+_mouseSensitivity = 100000.0
+
+[node name="ArcadeAirplane" parent="." unique_id=2019325561 instance=ExtResource("5_ndqsx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 100, 0)
+ThrustForce = 10.0
+WeathervaneStrength = 0.05
+DihedralStrength = 0.02

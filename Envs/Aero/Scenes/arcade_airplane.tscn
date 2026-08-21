@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://c1yx2hwjxc7jo"]
+
+[ext_resource type="Script" uid="uid://cpnfxd6gmdso1" path="res://Aero/Arcade/ArcadeAircraft.cs" id="1_p73jp"]
+[ext_resource type="ArrayMesh" uid="uid://b5vlcs2galvj5" path="res://Assets/Models/drone.obj" id="2_7dqa6"]
+
+[sub_resource type="Curve" id="Curve_7dqa6"]
+_limits = [-1.0, 1.0, -180.0, 180.0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-127.89257, 0.5390625), 0.0, 0.0, 0, 0, Vector2(-43.154297, -0.41322112), 0.0, 0.0, 0, 0, Vector2(-30, -1), 0.0, 0.0, 0, 0, Vector2(20, 1), 0.0, 0.0, 0, 0, Vector2(42.38086, 0.41526437), 0.0, 0.0, 0, 0, Vector2(139.79295, -0.40312493), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a5ajg"]
+radius = 0.07910156
+height = 0.9001465
+
+[node name="ArcadeAirplane" type="RigidBody3D" unique_id=2019325561]
+script = ExtResource("1_p73jp")
+LiftCurve = SubResource("Curve_7dqa6")
+MaxPitchRate = 45.0
+MaxRollRate = 90.0
+MaxYawRate = 15.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1051648601]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 2.4918485e-09, -0.057006836)
+shape = SubResource("CapsuleShape3D_a5ajg")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=2117917878]
+mesh = ExtResource("2_7dqa6")

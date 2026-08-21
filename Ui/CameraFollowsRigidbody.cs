@@ -47,7 +47,7 @@ public partial class CameraFollowsRigidbody : Node3D
 
         // var up = 10.0f * (_toFollow.GlobalPosition - WorldVars.PlanetCenter);
         var up = Vector3.Up;
-        _moving = forward.Length() > 25.0f;
+        _moving = forward.Length() > 2.0f;
         if (_moving && (_toFollow.GlobalPosition + forward).AngleTo(up) > 0.01f)
         {
             Transform = Transform.InterpolateWith(Transform.LookingAt(_toFollow.GlobalPosition + forward, Vector3.Up), (float)(0.99 * delta));
