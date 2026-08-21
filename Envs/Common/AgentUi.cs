@@ -3,11 +3,12 @@ using System.Text;
 using Godot;
 using PPO.Benchmarking;
 using PPO.Envs.Ball;
+using PPO.Envs.Chase;
 using PPO.Ppo;
 
 
 
-namespace PPO.Envs.Chase;
+namespace PPO.Envs.Common;
 
 
 

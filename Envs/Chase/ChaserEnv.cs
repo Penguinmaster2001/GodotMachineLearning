@@ -1,7 +1,6 @@
 
 using System;
 using Godot;
-using PPO.Envs.Ball;
 using PPO.Ppo;
 using TorchSharp;
 

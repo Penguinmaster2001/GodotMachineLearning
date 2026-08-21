@@ -3,7 +3,7 @@ using Godot;
 
 
 
-namespace PPO.Envs.Ball;
+namespace PPO.Envs.Chase;
 
 
 

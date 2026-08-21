@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://86wk0xlevwts"]
 
-[ext_resource type="Script" uid="uid://bkkmpy036gmhn" path="res://Envs/Chase/ResultIndicator.cs" id="1_5fanb"]
+[ext_resource type="Script" uid="uid://dr5x4758px5lv" path="res://Envs/Common/ResultIndicator.cs" id="1_5fanb"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_6hpst"]
 size = Vector3(0.1, 0.1, 0.1)

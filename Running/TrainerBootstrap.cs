@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using Godot;
-using PPO.Envs.Ball;
 using PPO.Envs.Chase;
+using PPO.Envs.Common;
 
 
 
@@ -31,8 +31,8 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
-    private List<ChaserNode> _chasers;
-    private List<TargetNode> _targets;
+    private List<ChaserNode> _chasers = [];
+    private List<TargetNode> _targets = [];
 
     [Export]
     private AgentUi _ui;
@@ -84,86 +84,20 @@ public partial class TrainerBootstrap : Node
 
     public override void _Ready()
     {
-        var rng = new RandomNumberGenerator();
+        var (options, env) = ChaserEnvFactory.CreateEnv(
+            _chasers,
+            _targets,
+            _num,
+            _start.Position,
+            _end.Position,
+            () => _chaser.Instantiate<ChaserNode>(),
+            () => _target.Instantiate<TargetNode>(),
+            () => _resultIndicator.Instantiate<ResultIndicator>(),
+            n => AddChild(n));
 
-        _chasers = new(_num);
-        _targets = new(_num);
-        for (int i = 0; i < _num; i++)
-        {
-            var hue = 4.0f * (i / 4) / _num;
-            var (up, dn) = (0.85f, 0.5f);
-            var (lightness, saturation) = (i % 4) switch
-            {
-                0 => (up, up),
-                1 => (up, dn),
-                2 => (dn, up),
-                3 => (dn, dn),
-                _ => (0.0f, 0.0f)
-            };
-            var color = Color.FromOkHsl(hue, saturation, lightness);
-
-            var chaser = _chaser.Instantiate<ChaserNode>();
-            chaser.SetColor(color);
-            _chasers.Add(chaser);
-            AddChild(chaser);
-
-            var target = _target.Instantiate<TargetNode>();
-            target.SetColor(color);
-            _targets.Add(target);
-            AddChild(target);
-        }
         RemoveChild(_followCam);
         _chasers[0].AddChild(_followCam);
         _followCam.Position = new(0.0f, 0.0f, 3.0f);
-
-        var env = new ChaserEnv([.. _chasers], [.. _targets], (c, t) =>
-        {
-            var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 30.0f;
-            var indicator = _resultIndicator.Instantiate<ResultIndicator>();
-            indicator.Position = c.Position;
-            indicator.SetColor(success ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
-            AddChild(indicator);
-
-            if (success)
-            {
-                c.HitStreak++;
-            }
-            else
-            {
-                c.HitStreak = 0;
-            }
-
-            c.Position = new Vector3(
-                    rng.RandfRange(_start.Position.X, _end.Position.X),
-                    rng.RandfRange(_start.Position.Y, _end.Position.Y),
-                    rng.RandfRange(_start.Position.Z, _end.Position.Z)
-                );
-
-            t.Position = c.Position + RandVector3(rng, -500.0f, 500.0f);
-
-            c.LinearVelocity = 30.0f * RandVector3(rng);
-            c.Acceleration = Vector3.Zero;
-            c.AngularVelocity = 5.0f * RandVector3(rng);
-            c.Rotation = Mathf.Tau * RandVector3(rng);
-            c.Age = 0.0f;
-        });
-
-        env.Reset();
-
-        var options = new PpoOptions
-        {
-            UseCuda = true,
-            NumSteps = 512,
-            NumEnvs = env.NumEnvs,
-            LearningRate = 3e-4,
-            TotalTimesteps = 32_000_000,
-            BatchSize = 512 * env.NumEnvs,
-            MinibatchSize = 8196,
-            UpdateEpochs = 4,
-            AnnealLR = true,
-            EntCoef = 0.001,
-            HiddenLayerSizes = [32, 32]
-        };
 
         if (_loadFromCheckpoint)
         {
@@ -181,13 +115,6 @@ public partial class TrainerBootstrap : Node
         _ui.Stats = _trainer.Stats;
         _ui.Chaser = _chasers[0];
         _ui.Target = _targets[0];
-    }
-
-
-
-    private static Vector3 RandVector3(RandomNumberGenerator rng, float min = -1.0f, float max = 1.0f)
-    {
-        return new(rng.RandfRange(min, max), rng.RandfRange(min, max), rng.RandfRange(min, max));
     }
 
 

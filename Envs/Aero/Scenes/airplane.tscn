@@ -1,0 +1,226 @@
+[gd_scene format=3 uid="uid://cqrbvyoq65xi3"]
+
+[ext_resource type="Script" uid="uid://ct3b1krhlq8xc" path="res://Aero/Aircraft.cs" id="1_4sqpi"]
+[ext_resource type="PackedScene" uid="uid://846xuvpcqrh3" path="res://Scenes/Ui/debug_block.tscn" id="2_3sjhs"]
+[ext_resource type="ArrayMesh" uid="uid://b5vlcs2galvj5" path="res://Assets/Models/drone.obj" id="2_l1ggy"]
+[ext_resource type="Script" uid="uid://cy2lsl565xkvl" path="res://Aero/AeroBody.cs" id="2_rhgxy"]
+[ext_resource type="Script" uid="uid://bkl2u28nv03fw" path="res://Aero/Components/LiftComponentResource.cs" id="3_8t66h"]
+[ext_resource type="Script" uid="uid://d2go0p8jjts3q" path="res://Aero/Components/DragComponentResource.cs" id="3_gm5r5"]
+[ext_resource type="Script" uid="uid://cfnbao002eljm" path="res://Aero/Components/ControlSurfaceComponentResource.cs" id="6_c1b80"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_l1ggy"]
+radius = 0.056152344
+height = 0.9890137
+
+[sub_resource type="Resource" id="Resource_a5ajg"]
+script = ExtResource("3_gm5r5")
+DragCoefficient = 0.01
+metadata/_custom_type_script = "uid://d2go0p8jjts3q"
+
+[sub_resource type="Curve" id="Curve_l1ggy"]
+_limits = [-1.0, 1.0, -180.0, 180.0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-127.89257, 0.5390625), 0.0, 0.0, 0, 0, Vector2(-43.154297, -0.41322112), 0.0, 0.0, 0, 0, Vector2(-30, -1), 0.0, 0.0, 0, 0, Vector2(20, 1), 0.0, 0.0, 0, 0, Vector2(42.38086, 0.41526437), 0.0, 0.0, 0, 0, Vector2(139.79295, -0.40312493), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[sub_resource type="Resource" id="Resource_c1b80"]
+script = ExtResource("3_8t66h")
+DragCoefficient = 0.005
+LiftingArea = 0.03
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_l1ggy")
+metadata/_custom_type_script = "uid://bkl2u28nv03fw"
+
+[sub_resource type="Curve" id="Curve_c1b80"]
+_limits = [-1.0, 1.0, -180.0, 180.0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 1), 0.0, 0.0, 0, 0, Vector2(-45, -1), 0.0, 0.0, 0, 0, Vector2(45, 1), 0.0, 0.0, 0, 0, Vector2(135, -1), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+point_count = 6
+
+[sub_resource type="Resource" id="Resource_l1ggy"]
+script = ExtResource("6_c1b80")
+DragMultiplier = 1.0
+DragCoefficient = 0.001
+LiftingArea = 0.005
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_c1b80")
+MaxAngle = 5.0
+MinAngle = -15.0
+ActuationSpeed = 60.0
+ControlMultiplier = 1.0
+ControlChannel = "roll"
+SensorChannel = "roll"
+metadata/_custom_type_script = "uid://cfnbao002eljm"
+
+[sub_resource type="Resource" id="Resource_3sjhs"]
+script = ExtResource("6_c1b80")
+DragMultiplier = 1.0
+DragCoefficient = 0.001
+LiftingArea = 0.005
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_c1b80")
+MaxAngle = 5.0
+MinAngle = -15.0
+ActuationSpeed = 60.0
+ControlMultiplier = -1.0
+ControlChannel = "roll"
+SensorChannel = "roll"
+metadata/_custom_type_script = "uid://cfnbao002eljm"
+
+[sub_resource type="Resource" id="Resource_r3nnd"]
+script = ExtResource("3_8t66h")
+DragMultiplier = 1.0
+DragCoefficient = 0.005
+LiftingArea = 0.01
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_l1ggy")
+metadata/_custom_type_script = "uid://bkl2u28nv03fw"
+
+[sub_resource type="Resource" id="Resource_tadjc"]
+script = ExtResource("6_c1b80")
+DragCoefficient = 0.1
+LiftingArea = 0.005
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_c1b80")
+MaxAngle = 15.0
+MinAngle = -15.0
+ActuationSpeed = 60.0
+ControlMultiplier = 1.0
+ControlChannel = "pitch"
+SensorChannel = "pitch"
+metadata/_custom_type_script = "uid://cfnbao002eljm"
+
+[sub_resource type="Resource" id="Resource_kfjxl"]
+script = ExtResource("3_8t66h")
+DragMultiplier = 1.0
+DragCoefficient = 0.005
+LiftingArea = 0.01
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_l1ggy")
+metadata/_custom_type_script = "uid://bkl2u28nv03fw"
+
+[sub_resource type="Resource" id="Resource_tlc54"]
+script = ExtResource("6_c1b80")
+DragMultiplier = 1.0
+DragCoefficient = 0.01
+LiftingArea = 0.005
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_c1b80")
+MaxAngle = 15.0
+MinAngle = -15.0
+ActuationSpeed = 60.0
+ControlMultiplier = 1.0
+ControlChannel = "pitch"
+SensorChannel = "pitch"
+metadata/_custom_type_script = "uid://cfnbao002eljm"
+
+[sub_resource type="Curve" id="Curve_3sjhs"]
+_limits = [-1.0, 1.0, -180.0, 180.0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.5), 0.0, 0.0, 0, 0, Vector2(-45, -0.4), 0.0, 0.0, 0, 0, Vector2(-30, -1), 0.0, 0.0, 0, 0, Vector2(30, 1), 0.0, 0.0, 0, 0, Vector2(45, 0.4), 0.0, 0.0, 0, 0, Vector2(135, -0.5), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[sub_resource type="Resource" id="Resource_6i5nw"]
+script = ExtResource("3_8t66h")
+DragMultiplier = 1.0
+DragCoefficient = 0.005
+LiftingArea = 0.01
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_3sjhs")
+metadata/_custom_type_script = "uid://bkl2u28nv03fw"
+
+[sub_resource type="Resource" id="Resource_pr8bc"]
+script = ExtResource("3_gm5r5")
+DragMultiplier = 1.0
+DragCoefficient = 0.01
+metadata/_custom_type_script = "uid://d2go0p8jjts3q"
+
+[sub_resource type="Resource" id="Resource_gvtiq"]
+script = ExtResource("6_c1b80")
+DragMultiplier = 1.0
+DragCoefficient = 0.01
+LiftingArea = 0.005
+LiftMultiplier = 1.0
+ColAoaCurve = SubResource("Curve_c1b80")
+MaxAngle = 15.0
+MinAngle = -15.0
+ActuationSpeed = 60.0
+ControlMultiplier = 1.0
+ControlChannel = "yaw"
+SensorChannel = "yaw"
+metadata/_custom_type_script = "uid://cfnbao002eljm"
+
+[node name="Airplane" type="RigidBody3D" unique_id=413202378 node_paths=PackedStringArray("Root")]
+gravity_scale = 0.0
+inertia = Vector3(0.3, 0.6, 0.01)
+script = ExtResource("1_4sqpi")
+Root = NodePath("Body")
+DebugBlock = ExtResource("2_3sjhs")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1514383269]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 1.7021407e-09, -0.03894043)
+shape = SubResource("CapsuleShape3D_l1ggy")
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=380031009]
+mesh = ExtResource("2_l1ggy")
+script = ExtResource("2_rhgxy")
+_mass = 1.0
+Components = Array[Resource]([SubResource("Resource_a5ajg")])
+
+[node name="RightWing" type="Node3D" parent="Body" unique_id=444126459]
+transform = Transform3D(0.98288673, -0.12068332, -0.1391731, 0.12186935, 0.99254614, 0, 0.13813573, -0.016960936, 0.99026805, 0.148, -0.013689563, 0.018)
+script = ExtResource("2_rhgxy")
+_mass = 0.1
+Components = Array[Resource]([SubResource("Resource_c1b80")])
+
+[node name="RightAlieron" type="Node3D" parent="Body/RightWing" unique_id=341989796]
+transform = Transform3D(1.0000002, -2.0954758e-09, 2.9802322e-08, -2.3283064e-09, 1, -1.8626451e-09, 2.9802322e-08, -3.7252903e-09, 1.0000002, 0.14587057, -0.011771131, 0.09583351)
+script = ExtResource("2_rhgxy")
+_mass = 0.03
+Components = Array[Resource]([SubResource("Resource_l1ggy")])
+
+[node name="LeftWing" type="Node3D" parent="Body" unique_id=28515902]
+transform = Transform3D(0.98288673, 0.12068332, 0.1391731, -0.12186935, 0.99254614, 0, -0.13813573, -0.016960936, 0.99026805, -0.14778936, -0.013689563, 0.017607152)
+script = ExtResource("2_rhgxy")
+_mass = 0.1
+Components = Array[Resource]([SubResource("Resource_c1b80")])
+
+[node name="LeftAlieron" type="Node3D" parent="Body/LeftWing" unique_id=504258241]
+transform = Transform3D(1.0000005, 0, 0, 0, 1, 0, 0, 0, 1.0000005, -0.146, -0.012, 0.096)
+script = ExtResource("2_rhgxy")
+_mass = 0.03
+Components = Array[Resource]([SubResource("Resource_3sjhs")])
+
+[node name="RightWing2" type="Node3D" parent="Body" unique_id=279919727]
+transform = Transform3D(0.9999999, 0, 0, 0, 0.9998477, 0.017452404, 0, -0.017452406, 0.99984765, 0.07747316, 0.044270545, 0.36204058)
+script = ExtResource("2_rhgxy")
+_mass = 0.05
+Components = Array[Resource]([SubResource("Resource_r3nnd")])
+
+[node name="RightAlieron" type="Node3D" parent="Body/RightWing2" unique_id=1598888502]
+transform = Transform3D(1.0000002, -2.0954758e-09, 2.9802322e-08, -2.3283064e-09, 1, -1.8626451e-09, 2.9802322e-08, -3.7252903e-09, 1.0000002, 0.05795168, -0.011771131, 0.058404297)
+script = ExtResource("2_rhgxy")
+_mass = 0.01
+Components = Array[Resource]([SubResource("Resource_tadjc")])
+
+[node name="LeftWing2" type="Node3D" parent="Body" unique_id=1210756752]
+transform = Transform3D(1, 0, 0, 0, 0.9998477, 0.017452406, 0, -0.017452406, 0.9998477, -0.077, 0.044270545, 0.36156353)
+script = ExtResource("2_rhgxy")
+_mass = 0.05
+Components = Array[Resource]([SubResource("Resource_kfjxl")])
+
+[node name="LeftAlieron" type="Node3D" parent="Body/LeftWing2" unique_id=1036626339]
+transform = Transform3D(1.0000005, 0, 0, 0, 1, 0, 0, 0, 1.0000005, -0.058, -0.012, 0.058)
+script = ExtResource("2_rhgxy")
+_mass = 0.01
+Components = Array[Resource]([SubResource("Resource_tlc54")])
+
+[node name="LeftWing3" type="Node3D" parent="Body" unique_id=1082366677]
+transform = Transform3D(-4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0, 1, 0, 0.12438296, 0.35760105)
+script = ExtResource("2_rhgxy")
+_mass = 0.05
+Components = Array[Resource]([SubResource("Resource_6i5nw"), SubResource("Resource_pr8bc")])
+
+[node name="LeftAlieron" type="Node3D" parent="Body/LeftWing3" unique_id=1158927968]
+transform = Transform3D(1.0000005, 0, 0, 0, 1, 0, 0, 0, 1.0000005, 0, 0, 0)
+script = ExtResource("2_rhgxy")
+Enabled = false
+_mass = 0.01
+Components = Array[Resource]([SubResource("Resource_gvtiq")])

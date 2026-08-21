@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d3sd8tqfwhncg"]
 
-[ext_resource type="Script" uid="uid://ckyn2128syyv7" path="res://Envs/Chase/TargetNode.cs" id="1_6lm8f"]
+[ext_resource type="Script" uid="uid://bp4wf1kud0o6e" path="res://Envs/Chase/TargetNode.cs" id="1_6lm8f"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6lm8f"]
 

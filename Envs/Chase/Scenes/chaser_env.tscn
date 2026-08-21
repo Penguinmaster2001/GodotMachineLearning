@@ -3,7 +3,8 @@
 [ext_resource type="Script" uid="uid://dfk04ac1klsn3" path="res://Running/TrainerBootstrap.cs" id="1_nslsp"]
 [ext_resource type="PackedScene" uid="uid://b4ynaae25g7so" path="res://Envs/Chase/Scenes/chaser.tscn" id="2_cnw6l"]
 [ext_resource type="PackedScene" uid="uid://d3sd8tqfwhncg" path="res://Envs/Chase/Scenes/chase_target.tscn" id="3_d7n3c"]
-[ext_resource type="PackedScene" uid="uid://86wk0xlevwts" path="res://Envs/Chase/Scenes/result_indicator.tscn" id="4_cnw6l"]
+[ext_resource type="PackedScene" uid="uid://86wk0xlevwts" path="res://Envs/Common/Scenes/result_indicator.tscn" id="4_cnw6l"]
+[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="5_cp1nr"]
 [ext_resource type="PackedScene" uid="uid://bjrvshgs0hhyl" path="res://Scenes/Ui/agent_ui.tscn" id="5_d7n3c"]
 [ext_resource type="Script" uid="uid://cl3s8xbndio28" path="res://Running/SimClock.cs" id="6_l6sid"]
 
@@ -25,19 +26,10 @@ material = SubResource("StandardMaterial3D_nslsp")
 radius = 0.1
 height = 0.2
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_d7n3c"]
-sky_top_color = Color(0.175, 0.39375004, 0.7, 1)
-sky_horizon_color = Color(0.49580002, 0.56257665, 0.67, 1)
-ground_bottom_color = Color(0.0940895, 0.1916259, 0.21233389, 1)
-ground_horizon_color = Color(0.49411765, 0.56078434, 0.67058825, 1)
-
-[sub_resource type="Sky" id="Sky_cnw6l"]
-sky_material = SubResource("ProceduralSkyMaterial_d7n3c")
-
 [sub_resource type="Environment" id="Environment_a5ajg"]
 background_mode = 2
 background_color = Color(0.7957566, 0.7957565, 0.7957566, 1)
-sky = SubResource("Sky_cnw6l")
+sky = ExtResource("5_cp1nr")
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 reflected_light_source = 1
@@ -48,15 +40,15 @@ script = ExtResource("1_nslsp")
 _chaser = ExtResource("2_cnw6l")
 _target = ExtResource("3_d7n3c")
 _resultIndicator = ExtResource("4_cnw6l")
-_num = 128
+_num = 1024
 _start = NodePath("First")
 _end = NodePath("Second")
 _ui = NodePath("AgentUi")
 _followCam = NodePath("FollowCam")
 _observeCam = NodePath("WatchCam")
 _updateFramePeriod = 10
-_loadCheckpointName = "airplane_strt_lvl"
-CheckpointName = "airplane_strt_lvl"
+_loadCheckpointName = "3d_chaser_ctrlbl_spd"
+CheckpointName = "3d_chaser_ctrlbl_spd"
 
 [node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
 transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, -30, -30)

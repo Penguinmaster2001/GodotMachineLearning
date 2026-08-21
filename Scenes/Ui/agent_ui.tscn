@@ -1,9 +1,10 @@
 [gd_scene format=3 uid="uid://bjrvshgs0hhyl"]
 
-[ext_resource type="Script" uid="uid://dl66cepf5ian1" path="res://Envs/Chase/AgentUi.cs" id="1_j8ges"]
+[ext_resource type="Script" uid="uid://cfrv184w6yxp0" path="res://Envs/Common/AgentUi.cs" id="1_j8ges"]
 
 [sub_resource type="SystemFont" id="SystemFont_i57lb"]
 font_names = PackedStringArray("Monospace")
+subpixel_positioning = 0
 
 [sub_resource type="Theme" id="Theme_j8ges"]
 default_font = SubResource("SystemFont_i57lb")

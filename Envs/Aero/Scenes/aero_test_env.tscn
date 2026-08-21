@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://cebtgc4ws1l8e"]
+
+[ext_resource type="PackedScene" uid="uid://cqrbvyoq65xi3" path="res://Envs/Aero/Scenes/airplane.tscn" id="1_2a3ip"]
+[ext_resource type="Script" uid="uid://ci4topgte2jqm" path="res://Envs/Aero/AeroTestEnv.cs" id="1_7mbnk"]
+[ext_resource type="Script" uid="uid://n4ru17jnm0ij" path="res://Aero/Controls/PlayerController.cs" id="2_f5rjh"]
+[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="2_qxdxq"]
+[ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="5_ypqtb"]
+
+[sub_resource type="Environment" id="Environment_a5ajg"]
+background_mode = 2
+sky = ExtResource("2_qxdxq")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_a5ajg"]
+size = Vector2(5000, 5000)
+
+[sub_resource type="Gradient" id="Gradient_8xyc8"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_2stmt"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_7bw1u"]
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_2stmt")
+color_ramp = SubResource("Gradient_8xyc8")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
+albedo_color = Color(0.37855995, 0.56, 0.25759998, 1)
+albedo_texture = SubResource("NoiseTexture2D_7bw1u")
+
+[node name="AeroTestEnv" type="Node3D" unique_id=446825272 node_paths=PackedStringArray("Aircraft", "PlayerController")]
+script = ExtResource("1_7mbnk")
+Aircraft = NodePath("Airplane")
+PlayerController = NodePath("PlayerController")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=878329285]
+environment = SubResource("Environment_a5ajg")
+
+[node name="Airplane" parent="." unique_id=413202378 instance=ExtResource("1_2a3ip")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 200, 2000)
+linear_damp = 0.1
+angular_damp = 0.1
+
+[node name="PlayerController" type="Node" parent="." unique_id=286264307]
+script = ExtResource("2_f5rjh")
+ThrottleResponse = 1.0
+Channels = Array[String](["pitch", "roll", "yaw", "throttle"])
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1437331745]
+mesh = SubResource("PlaneMesh_a5ajg")
+surface_material_override/0 = SubResource("StandardMaterial3D_gla0r")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1403518160]
+transform = Transform3D(1, 0, 0, 0, 0.7933533, 0.6087614, 0, -0.6087614, 0.7933533, 0, 0, 0)
+
+[node name="CameraFollowsRigidbody" parent="." unique_id=594315423 node_paths=PackedStringArray("_toFollow") instance=ExtResource("5_ypqtb")]
+_toFollow = NodePath("../Airplane")
+_followOffset = Vector3(0, 0, 1.5)
+_mouseSensitivity = 100000.0
