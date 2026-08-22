@@ -1,7 +1,10 @@
+
 using Godot;
 
 
+
 namespace PPO.Aero.Arcade;
+
 
 
 public partial class ArcadeAircraft : RigidBody3D
@@ -15,10 +18,16 @@ public partial class ArcadeAircraft : RigidBody3D
     public float DragCoefficient = 0.05f;    // opposes velocity, scales with speed^2
 
     [Export]
+    public float InducedDragCoefficient = 0.02f;
+
+    [Export]
     public float LiftMultiplier = 1.5f;      // overall lift scale (area * air density, lumped)
 
     [Export]
     public Curve LiftCurve;                  // Cl(AoA in degrees), gives stall angle + zero-angle lift shape
+
+    [Export]
+    public float StallAoA;
 
     [Export]
     public float MaxPitchRate = 90.0f;       // deg/s at full input, before speed scaling
@@ -43,6 +52,9 @@ public partial class ArcadeAircraft : RigidBody3D
 
     [Export]
     public float WeathervaneStrength = 0.3f; // yaw rate per unit sideslip*speed, turns nose into the curve
+
+    [Export]
+    public float AdverseYawStrength = 0.3f; // yaw rate per unit sideslip*speed, turns nose into the curve
 
     [Export]
     public float DihedralStrength = 0.15f;   // roll rate per unit sideslip*speed, restoring roll from sideslip
@@ -79,11 +91,13 @@ public partial class ArcadeAircraft : RigidBody3D
     public Basis StartBasis;
 
 
+
     public override void _Ready()
     {
         StartPosition = GlobalPosition;
         StartBasis = GlobalBasis;
     }
+
 
 
     public void SetControls(float pitch, float roll, float yaw, float throttle)
@@ -95,24 +109,23 @@ public partial class ArcadeAircraft : RigidBody3D
     }
 
 
+
     public override void _PhysicsProcess(double delta)
     {
         float dt = (float)delta;
 
+        Acceleration = (LinearVelocity - _prevVel) / dt;
+        _prevVel = LinearVelocity;
 
-        Vector3 localVel = GlobalBasis.Transposed() * LinearVelocity;
-        float forwardSpeed = -localVel.Z; // forward = -Z
+        var inverseBasis = GlobalBasis.Transposed();
+        Vector3 localVel = inverseBasis * LinearVelocity;
+        var localAngVel = inverseBasis * AngularVelocity;
+        float forwardSpeed = -localVel.Z;
         float speed = LinearVelocity.Length();
 
 
         // --- Thrust: along local forward ---
         Vector3 thrust = GlobalBasis * new Vector3(0, 0, -1) * (Throttle * ThrustForce);
-
-
-        // --- Drag: opposes velocity, grows with speed^2, this is what lets speed settle ---
-        Vector3 drag = speed > 0.01f
-            ? -LinearVelocity.Normalized() * DragCoefficient * speed * speed
-            : Vector3.Zero;
 
 
         // --- Lift: Cl(AoA) curve gives stall angle + zero-angle lift shape ---
@@ -129,29 +142,39 @@ public partial class ArcadeAircraft : RigidBody3D
         Vector3 lift = GlobalBasis * liftDir * liftMagnitude;
 
 
-        ApplyCentralForce(thrust + drag + lift);
-        // Gravity is applied automatically by Godot's own physics (RigidBody3D.GravityScale),
-        // no need to compute it manually here.
+        // --- Drag: opposes velocity, grows with speed^2, this is what lets speed settle ---
+        Vector3 drag = speed > 0.01f
+            ? -LinearVelocity.Normalized() * DragCoefficient * speed * speed
+            : Vector3.Zero;
 
+
+        float inducedDrag = InducedDragCoefficient * cl * cl * liftPlaneSpeedSq;
+        drag += speed > 0.01f ? -LinearVelocity.Normalized() * inducedDrag : Vector3.Zero;
+
+        ApplyCentralForce(thrust + drag + lift);
 
         // --- Rotation: directly command angular velocity toward a target, damped ---
-        float rateScale = Mathf.Clamp((speed * speed) / (ReferenceSpeed * ReferenceSpeed), MinRateScale, MaxRateScale);
+        float aoaDeg = Mathf.Abs(Mathf.RadToDeg(aoa));
+        float controlEffectiveness = Mathf.Clamp(1.0f - (aoaDeg - StallAoA) / 10.0f, 0.2f, 1.0f);
+        float rateScale = Mathf.Clamp(controlEffectiveness * speed * speed / (ReferenceSpeed * ReferenceSpeed), MinRateScale, MaxRateScale);
 
         // Weathervane + dihedral: aerodynamic effects from sideslip, scale naturally with speed, not clamped
         float sideVel = localVel.X;
         float weathervaneYawRate = -WeathervaneStrength * sideVel * speed;
-        float dihedralRollRate = -DihedralStrength * sideVel * speed;
+        float adverseYawRate = AdverseYawStrength * Roll * Mathf.Abs(Roll) * speed;
+        float dihedralRollRate = DihedralStrength * sideVel * speed;
 
         Vector3 targetLocalAngularVelocity = new(
             Mathf.DegToRad(Pitch * MaxPitchRate * rateScale),
-            Mathf.DegToRad(Yaw * MaxYawRate * rateScale) + weathervaneYawRate,
-            Mathf.DegToRad(-Roll * MaxRollRate * rateScale) + dihedralRollRate // roll right = negative local Z rotation
+            Mathf.DegToRad(Yaw * MaxYawRate * rateScale) + weathervaneYawRate + adverseYawRate,
+            Mathf.DegToRad(-Roll * MaxRollRate * rateScale) + dihedralRollRate
         );
         Vector3 targetWorldAngularVelocity = GlobalBasis * targetLocalAngularVelocity;
 
 
         AngularVelocity = AngularVelocity.Lerp(targetWorldAngularVelocity, 1.0f - Mathf.Exp(-RateResponsiveness * dt));
     }
+
 
 
     /// <summary>Convenience reset for RL episode boundaries.</summary>
@@ -166,20 +189,38 @@ public partial class ArcadeAircraft : RigidBody3D
     }
 
 
+
+    public string[] InputNames = [
+        "velX", "velY", "velZ",
+        "accX", "accY", "accZ",
+        "Dpch", "Drol", "Dyaw",
+        "gupX", "gupY", "gupZ",
+        "fwdX", "fwdY", "fwdZ",
+        "alti",
+        "pich", "roll", "yaww",
+        "thtl", "thst",
+    ];
+
+
+
     /// <summary>Basic observation vector, extend as needed for your policy.</summary>
     public float[] GetObservation()
     {
-        Vector3 localVel = GlobalBasis.Transposed() * LinearVelocity;
-        Vector3 localAngVel = GlobalBasis.Transposed() * AngularVelocity;
+        var inverseBasis = GlobalBasis.Transposed();
+        Vector3 localVel = inverseBasis * LinearVelocity;
+        Vector3 localAcc = inverseBasis * Acceleration;
+        Vector3 localAngVel = inverseBasis * AngularVelocity;
         Vector3 up = GlobalBasis.Y;
         Vector3 fwd = -GlobalBasis.Z;
 
-
         return [
             localVel.X, localVel.Y, localVel.Z,
-            localAngVel.X, localAngVel.Y, localAngVel.Z,
+            localAcc.X, localAcc.Y, localAcc.Z,
+            localAngVel.X, localAngVel.Z, localAngVel.Y,
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
+            Pitch, Roll, Yaw,
+            Throttle, Throttle * ThrustForce,
         ];
     }
 }

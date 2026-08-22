@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://cvrf4t6m6fmtg"]
+
+[ext_resource type="Script" uid="uid://dnvexrebn3ovu" path="res://Ui/Hud.cs" id="1_3n18v"]
+
+[sub_resource type="SystemFont" id="SystemFont_i57lb"]
+font_names = PackedStringArray("Monospace")
+subpixel_positioning = 0
+
+[sub_resource type="Theme" id="Theme_j8ges"]
+default_font = SubResource("SystemFont_i57lb")
+
+[node name="Hud" type="Control" unique_id=797787089 node_paths=PackedStringArray("_inputLabel", "_outputLabel", "_rewardLabel", "_statsLabel")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_j8ges")
+script = ExtResource("1_3n18v")
+_inputLabel = NodePath("Inputs")
+_outputLabel = NodePath("Outputs")
+_rewardLabel = NodePath("Reward")
+_statsLabel = NodePath("Stats")
+
+[node name="Inputs" type="Label" parent="." unique_id=430553744]
+layout_mode = 0
+offset_left = 13.0
+offset_top = 31.0
+offset_right = 179.0
+offset_bottom = 106.0
+text = "Input"
+
+[node name="Reward" type="Label" parent="." unique_id=1236188897]
+layout_mode = 0
+offset_left = 189.0
+offset_top = 31.0
+offset_right = 355.0
+offset_bottom = 106.0
+text = "Reward"
+
+[node name="Stats" type="Label" parent="." unique_id=656227005]
+layout_mode = 0
+offset_left = 446.0
+offset_top = 26.0
+offset_right = 612.0
+offset_bottom = 101.0
+text = "Stats"
+
+[node name="Outputs" type="Label" parent="." unique_id=2046999127]
+layout_mode = 0
+offset_left = 1250.0
+offset_top = 15.0
+offset_right = 1416.0
+offset_bottom = 90.0
+text = "Output"

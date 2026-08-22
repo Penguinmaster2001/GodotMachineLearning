@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using Godot;
 using PPO.Aero.Arcade;
+using PPO.Envs.Common;
+using PPO.Ui;
 
 
 
@@ -17,6 +19,9 @@ public partial class ArcadeTestEnv : Node3D
     [Export]
     public ArcadeController ArcadeController;
 
+    [Export]
+    public Hud Hud;
+
 
 
     public override void _Ready()
@@ -28,6 +33,9 @@ public partial class ArcadeTestEnv : Node3D
             {"yaw", 2},
             {"throttle", 3},
         });
+
+        Hud.InputNames = Aircraft.InputNames;
+        Hud.InputData = Aircraft.GetObservation;
     }
 
 

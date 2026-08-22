@@ -113,8 +113,8 @@ public partial class TrainerBootstrap : Node
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
         _ui.Stats = _trainer.Stats;
-        _ui.Chaser = _chasers[0];
-        _ui.Target = _targets[0];
+        // _ui.Chaser = _chasers[0];
+        // _ui.Target = _targets[0];
     }
 
 

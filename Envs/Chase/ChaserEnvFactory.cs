@@ -73,7 +73,7 @@ public static class ChaserEnvFactory
 
         var options = new PpoOptions
         {
-            UseCuda = true,
+            UseCuda = false,
             NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,

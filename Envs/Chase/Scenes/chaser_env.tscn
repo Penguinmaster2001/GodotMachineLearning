@@ -40,7 +40,7 @@ script = ExtResource("1_nslsp")
 _chaser = ExtResource("2_cnw6l")
 _target = ExtResource("3_d7n3c")
 _resultIndicator = ExtResource("4_cnw6l")
-_num = 1024
+_num = 8
 _start = NodePath("First")
 _end = NodePath("Second")
 _ui = NodePath("AgentUi")
@@ -49,6 +49,7 @@ _observeCam = NodePath("WatchCam")
 _updateFramePeriod = 10
 _loadCheckpointName = "3d_chaser_ctrlbl_spd"
 CheckpointName = "3d_chaser_ctrlbl_spd"
+_loadFromCheckpoint = true
 
 [node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
 transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, -30, -30)
@@ -75,5 +76,5 @@ size = 60.0
 
 [node name="Retimer" type="Node" parent="." unique_id=1439623693]
 script = ExtResource("6_l6sid")
-MaxFps = 12.0
+MaxFps = 90.0
 Enabled = true
