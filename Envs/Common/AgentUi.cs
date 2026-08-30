@@ -2,6 +2,7 @@
 using System.Text;
 using Godot;
 using PPO.Benchmarking;
+using PPO.Envs.Chase;
 using PPO.Ppo;
 
 
@@ -12,8 +13,8 @@ namespace PPO.Envs.Common;
 
 public partial class AgentUi : Control
 {
-    // public ChaserNode Chaser;
-    // public TargetNode Target;
+    public IAgent EnvAgent;
+    public TargetNode Target;
 
     public IEnv Env;
     public Agent Agent;
@@ -38,7 +39,7 @@ public partial class AgentUi : Control
         // var inputs = Env.Observe().cuda();
         var inputs = Env.Observe();
         var (action, _, _, _) = Agent.GetActionAndValue(inputs);
-        var (reward, _, _) = Env.Evaluate();
+        var (reward, _, _) = Env.Evaluate(false);
 
         reward = reward.cpu();
         inputs = inputs.cpu();
@@ -69,7 +70,7 @@ public partial class AgentUi : Control
         _inputLabel.Text = $"{inputVals}";
         _outputLabel.Text = $"{actionVals}";
         _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}";
-        // _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}\nagee: {Chaser.Age,10:00.0000}\ndist: {Chaser.GlobalPosition.DistanceTo(Target.GlobalPosition),10:00.0000}\nstrk: {Chaser.HitStreak,10:00.0000}";
+        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
         _statsLabel.Text = $"{stats}";
     }
 }

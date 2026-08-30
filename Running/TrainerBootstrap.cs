@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using Godot;
+using PPO.Aero.Arcade;
+using PPO.Envs.Arcade;
 using PPO.Envs.Chase;
 using PPO.Envs.Common;
+using PPO.Ui;
 
 
 
@@ -14,7 +17,7 @@ namespace PPO.Ppo;
 public partial class TrainerBootstrap : Node
 {
     [Export]
-    private PackedScene _chaser;
+    private PackedScene _aircraft;
 
     [Export]
     private PackedScene _target;
@@ -31,14 +34,14 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
-    private List<ChaserNode> _chasers = [];
+    private List<ArcadeAircraft> _aircrafts = [];
     private List<TargetNode> _targets = [];
 
     [Export]
     private AgentUi _ui;
 
     [Export]
-    private Camera3D _followCam;
+    private CameraFollowsRigidbody _followCam;
 
     [Export]
     private Camera3D _observeCam;
@@ -84,20 +87,18 @@ public partial class TrainerBootstrap : Node
 
     public override void _Ready()
     {
-        var (options, env) = ChaserEnvFactory.CreateEnv(
-            _chasers,
+        var (options, env) = ArcadeEnvFactory.CreateEnv(
+            _aircrafts,
             _targets,
             _num,
             _start.Position,
             _end.Position,
-            () => _chaser.Instantiate<ChaserNode>(),
+            () => _aircraft.Instantiate<ArcadeAircraft>(),
             () => _target.Instantiate<TargetNode>(),
             () => _resultIndicator.Instantiate<ResultIndicator>(),
             n => AddChild(n));
 
-        RemoveChild(_followCam);
-        _chasers[0].AddChild(_followCam);
-        _followCam.Position = new(0.0f, 0.0f, 3.0f);
+        _followCam.ToFollow = _aircrafts[0];
 
         if (_loadFromCheckpoint)
         {
@@ -113,8 +114,8 @@ public partial class TrainerBootstrap : Node
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
         _ui.Stats = _trainer.Stats;
-        // _ui.Chaser = _chasers[0];
-        // _ui.Target = _targets[0];
+        _ui.EnvAgent = _aircrafts[0];
+        _ui.Target = _targets[0];
     }
 
 
@@ -126,7 +127,7 @@ public partial class TrainerBootstrap : Node
             return;
         }
 
-        _trainer.SaveNextUpdate |= _saveCheckpoints || Input.IsKeyPressed(Key.Space);
+        _trainer.SaveNextUpdate = _saveCheckpoints;
 
         _updateCount++;
         if (_updateCount % _updateFramePeriod == 0)

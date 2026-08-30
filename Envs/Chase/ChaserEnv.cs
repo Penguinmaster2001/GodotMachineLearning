@@ -95,7 +95,7 @@ public class ChaserEnv : IEnv
 
 
 
-    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate()
+    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate(bool step = true)
     {
         var reward = new float[NumEnvs];
         var terminated = new bool[NumEnvs];
@@ -103,7 +103,10 @@ public class ChaserEnv : IEnv
 
         for (int i = 0; i < NumEnvs; i++)
         {
-            _stepCounts[i]++;
+            if (step)
+            {
+                _stepCounts[i]++;
+            }
 
             float dist = _targets[i].GlobalPosition.DistanceTo(_chasers[i].GlobalPosition);
 

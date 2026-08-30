@@ -10,12 +10,13 @@ namespace PPO.Ui;
 public partial class CameraFollowsRigidbody : Node3D
 {
     [Export]
-    private RigidBody3D _toFollow;
-
+    public RigidBody3D ToFollow;
 
     [Export]
     private Vector3 _followOffset;
 
+    [Export]
+    private float _snappiness = 0.5f;
 
     [Export]
     private float _mouseSensitivity;
@@ -41,16 +42,21 @@ public partial class CameraFollowsRigidbody : Node3D
 
     public override void _Process(double delta)
     {
-        Position = _toFollow.GlobalPosition;
-
-        Vector3 forward = _toFollow.LinearVelocity;
-
-        // var up = 10.0f * (_toFollow.GlobalPosition - WorldVars.PlanetCenter);
+        var forward = Vector3.Forward;
         var up = Vector3.Up;
-        _moving = forward.Length() > 2.0f;
-        if (_moving && (_toFollow.GlobalPosition + forward).AngleTo(up) > 0.01f)
+        if (ToFollow is not null)
         {
-            Transform = Transform.InterpolateWith(Transform.LookingAt(_toFollow.GlobalPosition + forward, Vector3.Up), (float)(0.99 * delta));
+            Position = ToFollow.GlobalPosition;
+            forward = ToFollow.LinearVelocity;
+            up = ToFollow.Basis.Column1;
+        }
+
+
+        // var up = 10.0f * (Position- WorldVars.PlanetCenter);
+        _moving = forward.Length() > 2.0f;
+        if (_moving && (Position + forward).AngleTo(up) > 0.01f)
+        {
+            Transform = Transform.InterpolateWith(Transform.LookingAt(Position + forward, up), 1.0f - Mathf.Exp(-_snappiness * (float)delta));
 
             _timer -= delta;
         }
@@ -79,5 +85,12 @@ public partial class CameraFollowsRigidbody : Node3D
 
         _rotationOffset.Rotation = _rotation;
         _camera.Position = _followOffset;
+    }
+
+
+
+    public void MakeCurrent()
+    {
+        _camera.MakeCurrent();
     }
 }

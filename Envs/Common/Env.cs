@@ -93,7 +93,7 @@ public class Env<T> : IEnv
 
 
 
-    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate()
+    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate(bool step = true)
     {
         var reward = new float[NumEnvs];
         var terminated = new bool[NumEnvs];
@@ -101,7 +101,10 @@ public class Env<T> : IEnv
 
         for (int i = 0; i < NumEnvs; i++)
         {
-            _stepCounts[i]++;
+            if (step)
+            {
+                _stepCounts[i]++;
+            }
             (reward[i], terminated[i], truncated[i]) = _score(_envs[i]);
         }
 
@@ -141,14 +144,5 @@ public class Env<T> : IEnv
         // obs[i, 12] = chaser.Throttle;
         // obs[i, 13] = chaser.CurrentThrust;
         // FillVec3(obs, i, 4, 2, chaser.Turning);
-    }
-
-
-
-    private void FillVec3(float[,] obs, int i, int j, int offset, Vector3 vec)
-    {
-        obs[i, (j * 3) + 0 + offset] = vec.X;
-        obs[i, (j * 3) + 1 + offset] = vec.Y;
-        obs[i, (j * 3) + 2 + offset] = vec.Z;
     }
 }

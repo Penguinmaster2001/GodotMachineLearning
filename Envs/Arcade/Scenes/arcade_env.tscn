@@ -1,0 +1,108 @@
+[gd_scene format=3 uid="uid://cixgii5kcyxmw"]
+
+[ext_resource type="Script" uid="uid://dfk04ac1klsn3" path="res://Running/TrainerBootstrap.cs" id="1_resl7"]
+[ext_resource type="PackedScene" uid="uid://grnldcd16ed8" path="res://Envs/Arcade/Scenes/large_drone.tscn" id="2_uuukt"]
+[ext_resource type="PackedScene" uid="uid://d3sd8tqfwhncg" path="res://Envs/Chase/Scenes/chase_target.tscn" id="3_nl4wg"]
+[ext_resource type="PackedScene" uid="uid://86wk0xlevwts" path="res://Envs/Common/Scenes/result_indicator.tscn" id="4_kshfu"]
+[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="5_6ssfd"]
+[ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="5_8qel6"]
+[ext_resource type="PackedScene" uid="uid://bjrvshgs0hhyl" path="res://Scenes/Ui/agent_ui.tscn" id="6_um50m"]
+[ext_resource type="Script" uid="uid://cl3s8xbndio28" path="res://Running/SimClock.cs" id="7_88gwi"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
+shading_mode = 0
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_a5ajg"]
+material = SubResource("StandardMaterial3D_gla0r")
+radius = 0.1
+height = 0.2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nslsp"]
+shading_mode = 0
+albedo_color = Color(0.51666665, 1, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_nslsp"]
+material = SubResource("StandardMaterial3D_nslsp")
+radius = 0.1
+height = 0.2
+
+[sub_resource type="Environment" id="Environment_a5ajg"]
+background_mode = 2
+background_color = Color(0.7957566, 0.7957565, 0.7957566, 1)
+sky = ExtResource("5_6ssfd")
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+reflected_light_source = 1
+tonemap_mode = 4
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_uuukt"]
+size = Vector2(10000, 10000)
+
+[sub_resource type="Gradient" id="Gradient_o8o12"]
+colors = PackedColorArray(0.26875925, 0.2533922, 0.11841985, 1, 0.71824336, 0.86, 0.6622, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_kp634"]
+noise_type = 4
+fractal_octaves = 8
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_7bw1u"]
+width = 4096
+height = 4096
+noise = SubResource("FastNoiseLite_kp634")
+color_ramp = SubResource("Gradient_o8o12")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c4eui"]
+albedo_color = Color(0.37855995, 0.56, 0.25759998, 1)
+albedo_texture = SubResource("NoiseTexture2D_7bw1u")
+
+[node name="ArcadeEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end", "_ui", "_followCam", "_observeCam")]
+script = ExtResource("1_resl7")
+_aircraft = ExtResource("2_uuukt")
+_target = ExtResource("3_nl4wg")
+_resultIndicator = ExtResource("4_kshfu")
+_num = 256
+_start = NodePath("First")
+_end = NodePath("Second")
+_ui = NodePath("AgentUi")
+_followCam = NodePath("CameraFollowsRigidbody")
+_observeCam = NodePath("WatchCam")
+_updateFramePeriod = 20
+_loadCheckpointName = "arcade_tgt_alt"
+CheckpointName = "arcade_tgt_alt"
+_loadFromCheckpoint = true
+_saveCheckpoints = true
+
+[node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, 200, -30)
+mesh = SubResource("SphereMesh_a5ajg")
+
+[node name="Second" type="MeshInstance3D" parent="." unique_id=2034012286]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 50, 1000, 30)
+mesh = SubResource("SphereMesh_nslsp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
+transform = Transform3D(0.9189263, 0.124524325, 0.37425688, -0.39442942, 0.29011202, 0.87192935, 0, -0.94885665, 0.3157076, 0, 0, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=486263588]
+environment = SubResource("Environment_a5ajg")
+
+[node name="WatchCam" type="Camera3D" parent="." unique_id=1863966396]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -125, 0, 0)
+projection = 1
+size = 60.0
+
+[node name="CameraFollowsRigidbody" parent="." unique_id=594315423 instance=ExtResource("5_8qel6")]
+_followOffset = Vector3(0, 0, 15)
+_mouseSensitivity = 100000.0
+
+[node name="AgentUi" parent="." unique_id=797787089 instance=ExtResource("6_um50m")]
+
+[node name="Retimer" type="Node" parent="." unique_id=1439623693]
+script = ExtResource("7_88gwi")
+MaxFps = 15.0
+Enabled = true
+
+[node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=803138517]
+mesh = SubResource("PlaneMesh_uuukt")
+surface_material_override/0 = SubResource("StandardMaterial3D_c4eui")

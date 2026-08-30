@@ -105,7 +105,7 @@ public class BallTrackEnv : IEnv
 
     // Computed from currently-observable state only. Increments each env's
     // step counter as a side effect (needed for the timeout/truncation check).
-    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate()
+    public (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate(bool step = true)
     {
         var reward = new float[NumEnvs];
         var terminated = new bool[NumEnvs];
@@ -113,7 +113,10 @@ public class BallTrackEnv : IEnv
 
         for (int i = 0; i < NumEnvs; i++)
         {
-            _stepCounts[i]++;
+            if (step)
+            {
+                _stepCounts[i]++;
+            }
 
             float dist = SignedDistance(i);
             float speed = _balls[i].LinearVelocity.Y;

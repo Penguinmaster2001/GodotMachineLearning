@@ -37,4 +37,49 @@ public static class Utils
     {
         return new(rng.RandfRange(min.X, max.X), rng.RandfRange(min.Y, max.Y), rng.RandfRange(min.Z, max.Z));
     }
+
+
+
+    public class ObsRowFiller
+    {
+        private readonly int _row;
+        private readonly float[,] _obs;
+        private int _index = 0;
+        public int Count => _index;
+
+
+
+        public ObsRowFiller(int row, float[,] obs)
+        {
+            _row = row;
+            _obs = obs;
+        }
+
+
+
+        public void Float(float x)
+        {
+            _obs[_row, _index] = x;
+            _index++;
+        }
+
+
+
+        public void Array(float[] arr)
+        {
+            for (int i = 0; i < arr.Length; i++)
+            {
+                Float(arr[i]);
+            }
+        }
+
+
+
+        public void Vec3(Vector3 vec)
+        {
+            Float(vec.X);
+            Float(vec.Y);
+            Float(vec.Z);
+        }
+    }
 }

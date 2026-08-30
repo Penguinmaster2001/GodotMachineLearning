@@ -1,15 +1,15 @@
 [gd_scene format=3 uid="uid://db7fjpip3rhk4"]
 
-[ext_resource type="Script" uid="uid://twkihgo1y6hy" path="res://Envs/Aero/ArcadeTestEnv.cs" id="1_pnef8"]
-[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="2_rqulq"]
-[ext_resource type="Script" uid="uid://pqbi1626ra36" path="res://Aero/Arcade/ArcadeController.cs" id="3_ndqsx"]
-[ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="5_88k6b"]
-[ext_resource type="PackedScene" uid="uid://c1yx2hwjxc7jo" path="res://Envs/Aero/Scenes/arcade_airplane.tscn" id="5_ndqsx"]
-[ext_resource type="PackedScene" uid="uid://cvrf4t6m6fmtg" path="res://Scenes/Ui/hud.tscn" id="6_rqulq"]
+[ext_resource type="Script" uid="uid://twkihgo1y6hy" path="res://Envs/Arcade/ArcadeTestEnv.cs" id="1_2roxt"]
+[ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="2_h0lvr"]
+[ext_resource type="Script" uid="uid://pqbi1626ra36" path="res://Aero/Arcade/ArcadeController.cs" id="3_4pwle"]
+[ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="4_j6jvm"]
+[ext_resource type="PackedScene" uid="uid://grnldcd16ed8" path="res://Envs/Arcade/Scenes/large_drone.tscn" id="5_gvt6t"]
+[ext_resource type="PackedScene" uid="uid://cvrf4t6m6fmtg" path="res://Scenes/Ui/hud.tscn" id="6_sqoyx"]
 
 [sub_resource type="Environment" id="Environment_a5ajg"]
 background_mode = 2
-sky = ExtResource("2_rqulq")
+sky = ExtResource("2_h0lvr")
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_a5ajg"]
 size = Vector2(5000, 5000)
@@ -29,8 +29,8 @@ albedo_color = Color(0.37855995, 0.56, 0.25759998, 1)
 albedo_texture = SubResource("NoiseTexture2D_7bw1u")
 
 [node name="AeroTestEnv" type="Node3D" unique_id=446825272 node_paths=PackedStringArray("Aircraft", "ArcadeController", "Hud")]
-script = ExtResource("1_pnef8")
-Aircraft = NodePath("ArcadeAirplane")
+script = ExtResource("1_2roxt")
+Aircraft = NodePath("LargeDrone")
 ArcadeController = NodePath("PlayerController")
 Hud = NodePath("Hud")
 
@@ -38,7 +38,7 @@ Hud = NodePath("Hud")
 environment = SubResource("Environment_a5ajg")
 
 [node name="PlayerController" type="Node" parent="." unique_id=286264307]
-script = ExtResource("3_ndqsx")
+script = ExtResource("3_4pwle")
 ThrottleResponse = 1.0
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1437331745]
@@ -48,16 +48,18 @@ surface_material_override/0 = SubResource("StandardMaterial3D_gla0r")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1403518160]
 transform = Transform3D(1, 0, 0, 0, 0.7933533, 0.6087614, 0, -0.6087614, 0.7933533, 0, 0, 0)
 
-[node name="CameraFollowsRigidbody" parent="." unique_id=594315423 node_paths=PackedStringArray("_toFollow") instance=ExtResource("5_88k6b")]
-_toFollow = NodePath("../ArcadeAirplane")
-_followOffset = Vector3(0, 0, 1.5)
+[node name="CameraFollowsRigidbody" parent="." unique_id=594315423 node_paths=PackedStringArray("ToFollow") instance=ExtResource("4_j6jvm")]
+ToFollow = NodePath("../LargeDrone")
+_followOffset = Vector3(0, 0, 15)
+_snappiness = 1.5
 _mouseSensitivity = 100000.0
 
-[node name="ArcadeAirplane" parent="." unique_id=2019325561 instance=ExtResource("5_ndqsx")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 100, 0)
-ThrustForce = 10.0
-WeathervaneStrength = 0.01
-AdverseYawStrength = 0.01
-DihedralStrength = 0.01
+[node name="LargeDrone" parent="." unique_id=2019325561 instance=ExtResource("5_gvt6t")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1000, 0)
+angular_velocity = Vector3(0, 0, 1.7453293)
+DragCoefficient = 0.001
+LiftMultiplier = 15.0
+MaxPitchRate = 90.0
+AdverseYawStrength = 0.001
 
-[node name="Hud" parent="." unique_id=797787089 instance=ExtResource("6_rqulq")]
+[node name="Hud" parent="." unique_id=797787089 instance=ExtResource("6_sqoyx")]

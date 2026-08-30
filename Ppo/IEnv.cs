@@ -41,7 +41,7 @@ public interface IEnv
     /// Observe(), same frame.
     /// </summary>
     /// <returns></returns>
-    (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate();
+    (torch.Tensor reward, torch.Tensor terminated, torch.Tensor truncated) Evaluate(bool step = true);
 
 
 

@@ -12,16 +12,19 @@ point_count = 8
 radius = 0.07910156
 height = 0.9001465
 
-[node name="ArcadeAirplane" type="RigidBody3D" unique_id=2019325561]
+[node name="ArcadeAirplane" type="RigidBody3D" unique_id=2019325561 node_paths=PackedStringArray("Mesh")]
 script = ExtResource("1_p73jp")
+ThrustForce = 10.0
 LiftCurve = SubResource("Curve_7dqa6")
 StallAoA = 20.0
 MaxPitchRate = 45.0
 MaxRollRate = 90.0
 MaxYawRate = 30.0
 MinRateScale = 0.01
-AdverseYawStrength = 0.05
-DihedralStrength = 0.3
+WeathervaneStrength = 0.01
+AdverseYawStrength = 0.01
+DihedralStrength = 0.01
+Mesh = NodePath("MeshInstance3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1051648601]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 2.4918485e-09, -0.057006836)
