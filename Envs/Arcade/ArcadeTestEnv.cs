@@ -21,6 +21,9 @@ public partial class ArcadeTestEnv : Node3D
     [Export]
     public Hud Hud;
 
+    [Export]
+    public Tagger Tagger;
+
 
 
     public override void _Ready()
@@ -49,5 +52,10 @@ public partial class ArcadeTestEnv : Node3D
             ArcadeController.GetChannel("yaw"),
             ArcadeController.GetChannel("throttle")
         );
+
+        if (Input.IsActionPressed("action_primary"))
+        {
+            Hud.HitCount += Tagger.Tag();
+        }
     }
 }

@@ -11,10 +11,6 @@ namespace PPO.Aero.Arcade;
 public partial class ArcadeAircraft : RigidBody3D, IAgent
 {
     #region Tunables
-
-    [Export]
-    public float ThrustForce = 5.0f;       // N, at full throttle
-
     [Export]
     public float DragCoefficient = 0.05f;    // opposes velocity, scales with speed^2
 
@@ -60,24 +56,22 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     [Export]
     public float DihedralStrength = 0.15f;   // roll rate per unit sideslip*speed, restoring roll from sideslip
 
+    [Export]
+    public ArcadeEngineResource EngineParams;
+
+    public WorldVars WorldVars = new();
     #endregion
 
 
     #region Control inputs
-
-
     public float Pitch;    // + = nose up
     public float Roll;     // + = roll right
     public float Yaw;      // + = yaw right
     public float Throttle; // [0, 1]
-
-
     #endregion
 
 
     #region RL data
-
-
     public Vector3 LocalVel;
     private Vector3 _prevVel;
     public Vector3 Acceleration { get; set; }
@@ -85,8 +79,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     public float Age { get; set; }
     public float Reward { get; set; }
     public int HitStreak { get; set; } = 0;
-
-
+    public ArcadeEngine Engine { get; private set; }
     #endregion
 
     [Export]
@@ -102,6 +95,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     {
         StartPosition = GlobalPosition;
         StartBasis = GlobalBasis;
+
+        Engine = EngineParams.Create();
     }
 
 
@@ -141,7 +136,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
 
 
         // --- Thrust: along local forward ---
-        Vector3 thrust = GlobalBasis * new Vector3(0, 0, -1) * (Throttle * ThrustForce);
+        EngineParams.UpdateParams(Engine);
+        Engine.Update(Throttle, WorldVars, LocalVel.Z, GlobalPosition, dt);
+        Vector3 thrust = -Basis.Column2 * Engine.Thrust;
 
 
         // --- Lift: Cl(AoA) curve gives stall angle + zero-angle lift shape ---
@@ -221,7 +218,6 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
 
 
 
-    /// <summary>Basic observation vector, extend as needed for your policy.</summary>
     public float[] GetObservation()
     {
         var inverseBasis = GlobalBasis.Transposed();
@@ -238,7 +234,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             fwd.X, fwd.Y, fwd.Z,
             AoA,
             Pitch, Roll, Yaw,
-            Throttle, Throttle * ThrustForce,
+            Throttle, Engine.Thrust / Engine.MaxThrust,
         ];
     }
 }

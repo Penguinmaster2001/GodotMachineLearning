@@ -41,18 +41,11 @@ public partial class TrainerBootstrap : Node
     private AgentUi _ui;
 
     [Export]
-    private CameraFollowsRigidbody _followCam;
+    public Godot.Collections.Array<Node3D> Cameras = [];
+    public int CurrentCamera = 0;
 
     [Export]
-    private Camera3D _observeCam;
-
-    private enum CameraMode
-    {
-        Observe,
-        Follow,
-    }
-
-    private CameraMode _currentCameraMode = CameraMode.Observe;
+    private CameraFollowsRigidbody _followCam;
 
     [Export]
     private long _updateFramePeriod = 5;
@@ -140,17 +133,17 @@ public partial class TrainerBootstrap : Node
 
     public override void _Input(InputEvent input)
     {
-        if (input is InputEventKey { Pressed: true, Keycode: Key.Space })
+        if (input is InputEventKey { Pressed: true, Keycode: Key.Space } key)
         {
-            switch (_currentCameraMode)
+            CurrentCamera = (CurrentCamera + Cameras.Count + (key.ShiftPressed ? -1 : 1)) % Cameras.Count;
+
+            switch (Cameras[CurrentCamera])
             {
-                case CameraMode.Follow:
-                    _observeCam.MakeCurrent();
-                    _currentCameraMode = CameraMode.Observe;
+                case Camera3D camera:
+                    camera.MakeCurrent();
                     break;
-                case CameraMode.Observe:
-                    _followCam.MakeCurrent();
-                    _currentCameraMode = CameraMode.Follow;
+                case CameraFollowsRigidbody camera:
+                    camera.MakeCurrent();
                     break;
             }
         }

@@ -25,21 +25,23 @@ _statsLabel = NodePath("Stats")
 
 [node name="Inputs" type="Label" parent="." unique_id=430553744]
 layout_mode = 0
-offset_left = 13.0
-offset_top = 31.0
-offset_right = 179.0
-offset_bottom = 106.0
+offset_left = 1261.0
+offset_top = 196.0
+offset_right = 1427.0
+offset_bottom = 271.0
 text = "Input"
 
 [node name="Reward" type="Label" parent="." unique_id=1236188897]
 layout_mode = 0
-offset_left = 189.0
-offset_top = 31.0
-offset_right = 355.0
-offset_bottom = 106.0
+offset_left = 539.0
+offset_top = 843.0
+offset_right = 777.0
+offset_bottom = 918.0
+theme_override_font_sizes/font_size = 25
 text = "Reward"
 
 [node name="Stats" type="Label" parent="." unique_id=656227005]
+visible = false
 layout_mode = 0
 offset_left = 446.0
 offset_top = 26.0
@@ -48,9 +50,10 @@ offset_bottom = 101.0
 text = "Stats"
 
 [node name="Outputs" type="Label" parent="." unique_id=2046999127]
+visible = false
 layout_mode = 0
-offset_left = 1250.0
-offset_top = 15.0
-offset_right = 1416.0
-offset_bottom = 90.0
+offset_left = 1045.0
+offset_top = 450.0
+offset_right = 1211.0
+offset_bottom = 525.0
 text = "Output"

@@ -87,7 +87,12 @@ public class ArcadeEnv : IEnv
     {
         for (int i = 0; i < NumEnvs; i++)
         {
-            _aircraft[i].SetControls(action[i, 1].item<float>(), action[i, 2].item<float>(), action[i, 3].item<float>(), action[i, 0].item<float>());
+            _aircraft[i].SetControls(
+                action[i, 1].item<float>(),
+                action[i, 2].item<float>(),
+                action[i, 3].item<float>(),
+                _aircraft[i].Throttle + (0.5f *  action[i, 0].item<float>())
+            );
         }
     }
 

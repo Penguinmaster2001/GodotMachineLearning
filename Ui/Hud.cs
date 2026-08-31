@@ -23,6 +23,8 @@ public partial class Hud : Control
     [Export]
     private Label _statsLabel;
 
+    public int HitCount;
+
     public string[] InputNames;
     public Func<float[]> InputData;
 
@@ -40,8 +42,10 @@ public partial class Hud : Control
 
         if (OutputNames is not null && OutputData is not null)
         {
-            _inputLabel.Text = BuildString(OutputNames, OutputData());
+            _outputLabel.Text = BuildString(OutputNames, OutputData());
         }
+
+        _rewardLabel.Text = $"Hits: {HitCount}";
     }
 
 
