@@ -66,9 +66,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1000, 0)
 linear_velocity = Vector3(0, 0, -100)
 angular_velocity = Vector3(0, 0, 1.7453293)
 DragCoefficient = 0.001
+LiftMultiplier = 10.0
 MaxPitchRate = 90.0
+RateResponsiveness = 5.0
 MaxRateScale = 1.5
-AdverseYawStrength = 0.001
+WeathervaneStrength = 0.0
+AdverseYawStrength = 0.0
+DihedralStrength = 0.0
 
 [node name="Hud" parent="." unique_id=797787089 instance=ExtResource("6_sqoyx")]
 

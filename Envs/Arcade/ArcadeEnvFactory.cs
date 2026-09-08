@@ -73,7 +73,7 @@ public static class ArcadeEnvFactory
 
         var options = new PpoOptions
         {
-            UseCuda = false,
+            UseCuda = true,
             NumSteps = 512,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,

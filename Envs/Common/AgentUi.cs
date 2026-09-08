@@ -36,8 +36,8 @@ public partial class AgentUi : Control
 
     public override void _Process(double delta)
     {
-        // var inputs = Env.Observe().cuda();
-        var inputs = Env.Observe();
+        var inputs = Env.Observe().cuda();
+        // var inputs = Env.Observe();
         var (action, _, _, _) = Agent.GetActionAndValue(inputs);
         var (reward, _, _) = Env.Evaluate(false);
 

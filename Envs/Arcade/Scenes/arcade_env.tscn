@@ -9,8 +9,6 @@
 [ext_resource type="PackedScene" uid="uid://bjrvshgs0hhyl" path="res://Scenes/Ui/agent_ui.tscn" id="6_um50m"]
 [ext_resource type="Script" uid="uid://cl3s8xbndio28" path="res://Running/SimClock.cs" id="7_88gwi"]
 [ext_resource type="ArrayMesh" uid="uid://dvt1rx5nv2xy8" path="res://Assets/Models/terrain.obj" id="9_o8o12"]
-[ext_resource type="PackedScene" uid="uid://db7fjpip3rhk4" path="res://Envs/Arcade/Scenes/arcade_test_env.tscn" id="10_kp634"]
-[ext_resource type="Script" uid="uid://cx4pkypcbtaxb" path="res://Aero/Arcade/ArcadeEngineResource.cs" id="11_c4eui"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
 shading_mode = 0
@@ -54,25 +52,16 @@ color_ramp = SubResource("Gradient_8xyc8")
 albedo_color = Color(0.48644936, 0.6197521, 0.30399022, 1)
 albedo_texture = SubResource("NoiseTexture2D_7bw1u")
 
-[sub_resource type="Resource" id="Resource_rgymj"]
-script = ExtResource("11_c4eui")
-MaxThrust = 18000.0
-DensityExp = 0.5
-EngineMaxVel = 1200.0
-RamRecoveryVel = 200.0
-ThrottleResponse = 0.2
-metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
-
 [node name="ArcadeEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end", "_ui", "Cameras", "_followCam")]
 script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 256
+_num = 512
 _start = NodePath("First")
 _end = NodePath("Second")
 _ui = NodePath("AgentUi")
-Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody"), NodePath("AeroTestEnv/CameraFollowsRigidbody"), NodePath("AeroTestEnv/LargeDrone/Camera3D")]
+Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
 _updateFramePeriod = 20
 _loadCheckpointName = "arcade_tgt_alt"
@@ -114,32 +103,3 @@ Enabled = true
 transform = Transform3D(5000, 0, 0, 0, 3000, 0, 0, 0, 5000, 0, 0, 0)
 mesh = ExtResource("9_o8o12")
 surface_material_override/0 = SubResource("StandardMaterial3D_o8o12")
-
-[node name="AeroTestEnv" parent="." unique_id=446825272 instance=ExtResource("10_kp634")]
-visible = false
-
-[node name="CameraFollowsRigidbody" parent="AeroTestEnv" index="4" unique_id=594315423]
-_followOffset = Vector3(0, 0, 12)
-_snappiness = 2.0
-
-[node name="Camera3D" parent="AeroTestEnv/CameraFollowsRigidbody/RotationOffset" parent_id_path=PackedInt32Array(446825272, 594315423, 1479609942) index="0" unique_id=1629969114]
-fov = 60.0
-
-[node name="LargeDrone" parent="AeroTestEnv" index="5" unique_id=2019325561]
-MaxYawRate = 60.0
-MinRateScale = 0.1
-EngineParams = SubResource("Resource_rgymj")
-
-[node name="Camera3D" type="Camera3D" parent="AeroTestEnv/LargeDrone" index="2" unique_id=58406310]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2059811, 0.19683838, -0.58530533)
-
-[node name="StaticBody3D" parent="AeroTestEnv" index="7" unique_id=116939331]
-visible = false
-
-[node name="Tagger" parent="AeroTestEnv" index="8" unique_id=557406388]
-_spread = 1.0
-_numPerFrame = 50
-
-[editable path="AeroTestEnv"]
-[editable path="AeroTestEnv/CameraFollowsRigidbody"]
-[editable path="AeroTestEnv/LargeDrone"]
