@@ -7,6 +7,7 @@
 [ext_resource type="ArrayMesh" uid="uid://dvt1rx5nv2xy8" path="res://Assets/Models/terrain.obj" id="4_ka701"]
 [ext_resource type="PackedScene" uid="uid://grnldcd16ed8" path="res://Envs/Arcade/Scenes/large_drone.tscn" id="5_gvt6t"]
 [ext_resource type="PackedScene" uid="uid://cvrf4t6m6fmtg" path="res://Scenes/Ui/hud.tscn" id="6_sqoyx"]
+[ext_resource type="Resource" uid="uid://bcbrrjunjhd7o" path="res://Envs/Arcade/AircraftConfigs/large_drone.tres" id="7_jgsu7"]
 [ext_resource type="Script" uid="uid://wisa5et4cd0l" path="res://Aero/Arcade/Tagger.cs" id="8_rj1jk"]
 
 [sub_resource type="Environment" id="Environment_a5ajg"]
@@ -63,16 +64,10 @@ _mouseSensitivity = 100000.0
 
 [node name="LargeDrone" parent="." unique_id=2019325561 instance=ExtResource("5_gvt6t")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1000, 0)
+inertia = Vector3(9000, 12000, 2400)
 linear_velocity = Vector3(0, 0, -100)
-angular_velocity = Vector3(0, 0, 1.7453293)
-DragCoefficient = 0.001
-LiftMultiplier = 10.0
-MaxPitchRate = 90.0
-RateResponsiveness = 5.0
-MaxRateScale = 1.5
-WeathervaneStrength = 0.0
-AdverseYawStrength = 0.0
-DihedralStrength = 0.0
+linear_damp = 0.025
+ParametersResource = ExtResource("7_jgsu7")
 
 [node name="Hud" parent="." unique_id=797787089 instance=ExtResource("6_sqoyx")]
 

@@ -1,4 +1,5 @@
 
+using System;
 using Godot;
 using PPO.Ppo;
 
@@ -10,55 +11,12 @@ namespace PPO.Aero.Arcade;
 
 public partial class ArcadeAircraft : RigidBody3D, IAgent
 {
+    [Export]
+    public bool TuningMode = false;
+
     #region Tunables
     [Export]
-    public float DragCoefficient = 0.05f;    // opposes velocity, scales with speed^2
-
-    [Export]
-    public float InducedDragCoefficient = 0.02f;
-
-    [Export]
-    public float LiftMultiplier = 1.5f;      // overall lift scale (area * air density, lumped)
-
-    [Export]
-    public Curve LiftCurve;                  // Cl(AoA in degrees), gives stall angle + zero-angle lift shape
-
-    [Export]
-    public float StallAoA;
-
-    [Export]
-    public float MaxPitchRate = 90.0f;       // deg/s at full input, before speed scaling
-
-    [Export]
-    public float MaxRollRate = 180.0f;       // deg/s at full input, before speed scaling
-
-    [Export]
-    public float MaxYawRate = 45.0f;         // deg/s at full input, before speed scaling
-
-    [Export]
-    public float RateResponsiveness = 2.0f;  // higher = snappier tracking of target angular velocity
-
-    [Export]
-    public float ReferenceSpeed = 10.0f;     // speed at which pilot rate authority is nominal (scale = 1)
-
-    [Export]
-    public float MinRateScale = 0.1f;        // floor on control authority at low speed (0 = none at rest)
-
-    [Export]
-    public float MaxRateScale = 2.0f;        // cap on control authority at high speed
-
-    [Export]
-    public float WeathervaneStrength = 0.3f; // yaw rate per unit sideslip*speed, turns nose into the curve
-
-    [Export]
-    public float AdverseYawStrength = 0.3f; // yaw rate per unit sideslip*speed, turns nose into the curve
-
-    [Export]
-    public float DihedralStrength = 0.15f;   // roll rate per unit sideslip*speed, restoring roll from sideslip
-
-    [Export]
-    public ArcadeEngineResource EngineParams;
-
+    public ArcadeParametersResource ParametersResource;
     public WorldVars WorldVars = new();
     #endregion
 
@@ -79,7 +37,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     public float Age { get; set; }
     public float Reward { get; set; }
     public int HitStreak { get; set; } = 0;
-    public ArcadeEngine Engine { get; private set; }
+    public ArcadeParameters Parameters { get; private set; }
+    public ArcadeEngine Engine { get; private set; } = new();
     #endregion
 
     [Export]
@@ -96,7 +55,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         StartPosition = GlobalPosition;
         StartBasis = GlobalBasis;
 
-        Engine = EngineParams.Create();
+        Parameters = ParametersResource.Create();
+        Engine.Parameters = Parameters.EngineParameters;
     }
 
 
@@ -123,7 +83,12 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
 
     public override void _PhysicsProcess(double delta)
     {
-        const float eps = 0.001f;
+        if (TuningMode)
+        {
+            Parameters = ParametersResource.Create();
+            Engine.Parameters = Parameters.EngineParameters;
+        }
+
         float dt = (float)delta;
         Age += dt;
 
@@ -135,54 +100,64 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         var localAngVel = inverseBasis * AngularVelocity;
         float speed = LinearVelocity.Length();
 
-        // Thrust
-        EngineParams.UpdateParams(Engine);
+
+        // --- Thrust ---
         Engine.Update(Throttle, WorldVars, LocalVel.Z, GlobalPosition, dt);
-        Vector3 thrust = -Basis.Column2 * Engine.Thrust;https://www.plazagarcia.com/menu
+        Vector3 thrust = -Basis.Column2 * Engine.Thrust;
 
 
-        // Lift
+        // --- Lift ---
         float u = -LocalVel.Z; // forward relative wind component
         float w = -LocalVel.Y; // downward relative wind component
-        AoA = (Mathf.Abs(u) > eps || Mathf.Abs(w) > eps) ? Mathf.Atan2(w, u) : 0.0f;
-        float aoaDeg = Mathf.RadToDeg(AoA);
+        float v = -LocalVel.X;
+        AoA = (Mathf.Abs(u) > 0.01f || Mathf.Abs(w) > 0.01f) ? Mathf.Atan2(w, u) : 0.0f;
+        float hAoa = (Mathf.Abs(u) > 0.01f || Mathf.Abs(v) > 0.01f) ? Mathf.Atan2(v, u) : 0.0f;
         float liftPlaneSpeedSq = LocalVel.Y * LocalVel.Y + LocalVel.Z * LocalVel.Z; // excludes lateral/spanwise X
 
-        float cl = LiftCurve is not null ? LiftCurve.SampleBaked(aoaDeg) : 0.0f;
-        float liftMagnitude = LiftMultiplier * cl * liftPlaneSpeedSq;
+        float cl = Parameters.LiftCurve is not null ? Parameters.LiftCurve(Mathf.RadToDeg(AoA)) : 0.0f;
+        float liftMagnitude = Parameters.LiftMultiplier * cl * liftPlaneSpeedSq;
 
         Vector3 liftDirLocal = new(0.0f, -LocalVel.Z, LocalVel.Y);
-        Vector3 liftDir = liftDirLocal.LengthSquared() > eps * eps ? liftDirLocal.Normalized() : Vector3.Zero;
+        Vector3 liftDir = liftDirLocal.LengthSquared() > 0.001f ? liftDirLocal.Normalized() : Vector3.Zero;
         Vector3 lift = GlobalBasis * liftDir * liftMagnitude;
 
 
-        // Drag
-        Vector3 drag = speed > eps
-            ? -LinearVelocity.Normalized() * DragCoefficient * speed * speed
+        // --- Drag---
+        Vector3 drag = speed > 0.01f
+            ? -LinearVelocity.Normalized() * Parameters.DragCoefficient * speed * speed
             : Vector3.Zero;
 
-        float inducedDrag = InducedDragCoefficient * cl * cl * liftPlaneSpeedSq;
+
+        float inducedDrag = Parameters.InducedDragCoefficient * cl * cl * liftPlaneSpeedSq;
         drag += speed > 0.01f ? -LinearVelocity.Normalized() * inducedDrag : Vector3.Zero;
 
         ApplyCentralForce(thrust + drag + lift);
 
-        // Rotation
-        float controlEffectiveness = Mathf.Clamp(1.0f - (Mathf.Abs(aoaDeg) / StallAoA), 0.0f, 1.0f);
-        float rateScale = Mathf.Clamp(controlEffectiveness * speed * speed / (ReferenceSpeed * ReferenceSpeed), MinRateScale, MaxRateScale);
+        // --- Rotation ---
+        float aoaDeg = Mathf.Abs(Mathf.RadToDeg(AoA));
+        float controlEffectiveness = Mathf.Clamp(1.0f - (aoaDeg - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f);
+        float rateScale = Mathf.Clamp(controlEffectiveness * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
+        float yawRateScale = Mathf.Clamp(Mathf.Clamp(1.0f - (Math.Abs(Mathf.RadToDeg(hAoa)) - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f) * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
 
         float sideVel = LocalVel.X;
-        float weathervaneYawRate = -WeathervaneStrength * sideVel * speed / ReferenceSpeed;
-        float adverseYawRate = -AdverseYawStrength * Roll * Mathf.Abs(Roll) * speed / ReferenceSpeed;
-        float dihedralRollRate = DihedralStrength * sideVel * speed / ReferenceSpeed;
+        float stabilizerPitch = liftMagnitude * Parameters.StabilizerPitchStrength;
+        float yawCorrectionRate = yawRateScale * -sideVel * Parameters.YawCorrectionStrength;
+        float adverseYawRate = Parameters.AdverseYawStrength * Roll * Mathf.Abs(Roll) * speed / Parameters.ReferenceSpeed;
+        float sideslipRollRate = Parameters.SideslipRollStrength * sideVel * speed / Parameters.ReferenceSpeed;
+        float dihedralCorrection = liftMagnitude * Parameters.DihedralStrength * Mathf.Clamp(-GlobalRotation.Z / Mathf.Pi, -0.2f, 0.2f);
 
         Vector3 targetLocalAngularVelocity = new(
-            Mathf.DegToRad(Pitch * MaxPitchRate * rateScale),
-            Mathf.DegToRad(Yaw * MaxYawRate * rateScale) + weathervaneYawRate + adverseYawRate,
-            Mathf.DegToRad(-Roll * MaxRollRate * rateScale) + dihedralRollRate
+            Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale),
+            Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate + yawCorrectionRate,
+            Mathf.DegToRad(-Roll * Parameters.TurnRates.Z * rateScale) + sideslipRollRate
         );
-        Vector3 targetWorldAngularVelocity = GlobalBasis * targetLocalAngularVelocity;
 
-        AngularVelocity = AngularVelocity.Lerp(targetWorldAngularVelocity, 1.0f - Mathf.Exp(-RateResponsiveness * dt));
+        // Proportional controller
+        Vector3 AngVelErr = Parameters.TurnTorqueMultiplier * (targetLocalAngularVelocity - localAngVel);
+        Vector3 localAeroEffects = new(stabilizerPitch, 0.0f, dihedralCorrection);
+        Vector3 worldTorque = GlobalBasis * ((Inertia * AngVelErr) + localAeroEffects);
+
+        ApplyTorque(worldTorque);
     }
 
 
@@ -208,6 +183,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         "Dpch", "Dyaw", "Drol",
         "gupX", "gupY", "gupZ",
         "fwdX", "fwdY", "fwdZ",
+        "head",
         "aoa",
         "pich", "roll", "yaww",
         "thtl", "thst",
@@ -222,6 +198,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         Vector3 localAngVel = inverseBasis * AngularVelocity;
         Vector3 up = GlobalBasis.Y;
         Vector3 fwd = -GlobalBasis.Z;
+        float heading = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(fwd.X, -fwd.Z)), 360.0f);
 
         return [
             LocalVel.X, LocalVel.Y, LocalVel.Z,
@@ -229,9 +206,10 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             localAngVel.X, localAngVel.Y, localAngVel.Z,
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
+            heading,
             AoA,
             Pitch, Roll, Yaw,
-            Throttle, Engine.Thrust / Engine.MaxThrust,
+            Throttle, Engine.Thrust / Engine.Parameters.MaxThrust,
         ];
     }
 }

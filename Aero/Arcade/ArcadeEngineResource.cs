@@ -9,7 +9,7 @@ namespace PPO.Aero.Arcade;
 
 
 [GlobalClass]
-public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEngine>
+public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEngineParameters>
 {
     [Export]
     public float MaxThrust;
@@ -28,7 +28,7 @@ public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEng
 
 
 
-    public ArcadeEngine Create() => new()
+    public ArcadeEngineParameters Create() => new()
     {
         MaxThrust = MaxThrust,
         DensityExp = DensityExp,
@@ -36,15 +36,4 @@ public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEng
         RamRecoveryVel = RamRecoveryVel,
         ThrottleResponse = ThrottleResponse,
     };
-
-
-
-    public void UpdateParams(ArcadeEngine engine)
-    {
-        engine.MaxThrust = MaxThrust;
-        engine.DensityExp = DensityExp;
-        engine.EngineMaxVel = EngineMaxVel;
-        engine.RamRecoveryVel = RamRecoveryVel;
-        engine.ThrottleResponse = ThrottleResponse;
-    }
 }
