@@ -2,24 +2,10 @@
 
 [ext_resource type="Script" uid="uid://cpnfxd6gmdso1" path="res://Aero/Arcade/ArcadeAircraft.cs" id="1_svtwk"]
 [ext_resource type="ArrayMesh" uid="uid://bumebw82vrjyx" path="res://Assets/Models/large_drone.obj" id="2_svtwk"]
-[ext_resource type="Script" uid="uid://cx4pkypcbtaxb" path="res://Aero/Arcade/ArcadeEngineResource.cs" id="2_vgbwr"]
+[ext_resource type="Resource" uid="uid://bcbrrjunjhd7o" path="res://Envs/Arcade/AircraftConfigs/large_drone.tres" id="2_vgbwr"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_rj1jk"]
 friction = 0.0
-
-[sub_resource type="Curve" id="Curve_7dqa6"]
-_limits = [-1.0, 1.0, -180.0, 180.0]
-_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-35, -0.4), 0.0, 0.0, 0, 0, Vector2(-30, -1), 0.0, 0.0, 0, 0, Vector2(20, 1), 0.0, 0.0, 0, 0, Vector2(25, 0.4), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
-point_count = 8
-
-[sub_resource type="Resource" id="Resource_gvt6t"]
-script = ExtResource("2_vgbwr")
-MaxThrust = 12000.0
-DensityExp = 0.5
-EngineMaxVel = 200.0
-RamRecoveryVel = 400.0
-ThrottleResponse = 0.2
-metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a5ajg"]
 radius = 4.0161133
@@ -29,20 +15,9 @@ height = 9.531113
 collision_layer = 2
 mass = 1500.0
 physics_material_override = SubResource("PhysicsMaterial_rj1jk")
+inertia = Vector3(9000, 12000, 2400)
 script = ExtResource("1_svtwk")
-DragCoefficient = 0.01
-InducedDragCoefficient = 0.5
-LiftMultiplier = 15.0
-LiftCurve = SubResource("Curve_7dqa6")
-StallAoA = 20.0
-MaxPitchRate = 45.0
-MaxYawRate = 30.0
-RateResponsiveness = 10.0
-ReferenceSpeed = 120.0
-MinRateScale = 0.01
-AdverseYawStrength = 0.1
-DihedralStrength = 0.3
-EngineParams = SubResource("Resource_gvt6t")
+ParametersResource = ExtResource("2_vgbwr")
 Mesh = NodePath("MeshInstance3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1051648601]

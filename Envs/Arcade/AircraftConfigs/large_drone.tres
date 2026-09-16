@@ -5,9 +5,9 @@
 
 [sub_resource type="Resource" id="Resource_x68l3"]
 script = ExtResource("1_mgwab")
-MaxThrust = 16000.0
+MaxThrust = 12000.0
 DensityExp = 0.5
-EngineMaxVel = 200.0
+EngineMaxVel = 150.0
 RamRecoveryVel = 400.0
 ThrottleResponse = 0.2
 metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
@@ -19,18 +19,19 @@ point_count = 8
 
 [resource]
 script = ExtResource("2_updhe")
-DragCoefficient = 0.02
-InducedDragCoefficient = 0.5
+DragCoefficient = 0.01
+InducedDragCoefficient = 1.0
 LiftMultiplier = 10.0
 LiftCurve = SubResource("Curve_5xfn1")
 StallAoA = 20.0
-TurnRates = Vector3(45, 30, 90)
-TurnTorqueMultiplier = 5.0
-ReferenceSpeed = 120.0
+TurnRates = Vector3(45, 15, 90)
+YAccelerationLimits = Vector2(-20, 40)
+TurnTorqueMultiplier = 2.0
+ReferenceSpeed = 100.0
 YawCorrectionStrength = 0.1
 AdverseYawStrength = 0.2
-DihedralStrength = 0.2
-StabilizerPitchStrength = 0.01
+DihedralStrength = 0.05
+StabilizerPitchStrength = 0.005
 SideslipRollStrength = 0.05
 EngineParameters = SubResource("Resource_x68l3")
 metadata/_custom_type_script = "uid://n0nbbdnwwgc4"

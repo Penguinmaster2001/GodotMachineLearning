@@ -146,8 +146,11 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float sideslipRollRate = Parameters.SideslipRollStrength * sideVel * speed / Parameters.ReferenceSpeed;
         float dihedralCorrection = liftMagnitude * Parameters.DihedralStrength * Mathf.Clamp(-GlobalRotation.Z / Mathf.Pi, -0.2f, 0.2f);
 
+        // G-limiting
+        float pitchRate = Mathf.Clamp(Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale), Parameters.YAccelerationLimits.X / -LocalVel.Z, Parameters.YAccelerationLimits.Y / -LocalVel.Z);
+
         Vector3 targetLocalAngularVelocity = new(
-            Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale),
+            pitchRate,
             Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate + yawCorrectionRate,
             Mathf.DegToRad(-Roll * Parameters.TurnRates.Z * rateScale) + sideslipRollRate
         );
@@ -183,7 +186,6 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         "Dpch", "Dyaw", "Drol",
         "gupX", "gupY", "gupZ",
         "fwdX", "fwdY", "fwdZ",
-        "head",
         "aoa",
         "pich", "roll", "yaww",
         "thtl", "thst",
@@ -206,7 +208,6 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             localAngVel.X, localAngVel.Y, localAngVel.Z,
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
-            heading,
             AoA,
             Pitch, Roll, Yaw,
             Throttle, Engine.Thrust / Engine.Parameters.MaxThrust,

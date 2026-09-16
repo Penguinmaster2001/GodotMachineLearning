@@ -16,6 +16,7 @@ public class ArcadeParameters
     public Func<float, float> LiftCurve;
     public float StallAoA;
     public Vector3 TurnRates;
+    public Vector2 YAccelerationLimits;
     public float TurnTorqueMultiplier;
     public float ReferenceSpeed;
     public float MinRateScale = 0.1f;

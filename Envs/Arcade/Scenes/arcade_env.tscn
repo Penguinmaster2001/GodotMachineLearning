@@ -97,7 +97,6 @@ _mouseSensitivity = 100000.0
 [node name="Retimer" type="Node" parent="." unique_id=1439623693]
 script = ExtResource("7_88gwi")
 MaxFps = 15.0
-Enabled = true
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=803138517]
 transform = Transform3D(5000, 0, 0, 0, 3000, 0, 0, 0, 5000, 0, 0, 0)
