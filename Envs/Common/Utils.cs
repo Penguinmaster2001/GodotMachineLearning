@@ -40,6 +40,13 @@ public static class Utils
 
 
 
+    public static string FormatVector3(Vector3 vec, string format = "{0:0.000}")
+    {
+        return $"({string.Format(format, vec.X)}, {string.Format(format, vec.Y)}, {string.Format(format, vec.Z)})";
+    }
+
+
+
     public class ObsRowFiller
     {
         private readonly int _row;

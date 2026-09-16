@@ -48,6 +48,9 @@ public partial class ArcadeParametersResource : Resource, IComponentConfig<Arcad
     public float YawCorrectionStrength = 0.3f;
 
     [Export]
+    public float PitchCorrectionStrength;
+
+    [Export]
     public float AdverseYawStrength = 0.3f;
 
     [Export]
@@ -78,6 +81,7 @@ public partial class ArcadeParametersResource : Resource, IComponentConfig<Arcad
         MinRateScale = MinRateScale,
         MaxRateScale = MaxRateScale,
         YawCorrectionStrength = YawCorrectionStrength,
+        PitchCorrectionStrength = PitchCorrectionStrength,
         AdverseYawStrength = AdverseYawStrength,
         DihedralStrength = DihedralStrength,
         StabilizerPitchStrength = StabilizerPitchStrength,

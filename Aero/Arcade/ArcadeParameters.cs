@@ -22,6 +22,7 @@ public class ArcadeParameters
     public float MinRateScale = 0.1f;
     public float MaxRateScale = 2.0f;
     public float YawCorrectionStrength = 0.3f;
+    public float PitchCorrectionStrength = 0.3f;
     public float AdverseYawStrength = 0.3f;
     public float DihedralStrength = 0.15f;
     public float StabilizerPitchStrength;

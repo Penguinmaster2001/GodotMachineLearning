@@ -39,9 +39,7 @@ public class ArcadeEngine
         EngineSpool = Math.Clamp(EngineSpool, 0.0f, 1.0f);
 
         Density = MathF.Pow(worldVars.AirDensity(globalPosition) / worldVars.AirDensitySeaLevel, Parameters.DensityExp);
-        AirspeedTerm = 1.0f - (airspeed / Parameters.EngineMaxVel);
-        RamAirTerm = airspeed * airspeed / (Parameters.RamRecoveryVel * Parameters.RamRecoveryVel);
 
-        Thrust = EngineSpool * Parameters.MaxThrust * Density * (AirspeedTerm + RamAirTerm);
+        Thrust = EngineSpool * Parameters.MaxThrust * Density * Parameters.MachThrust(airspeed / worldVars.SpeedOfSound(globalPosition));
     }
 }

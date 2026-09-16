@@ -1,6 +1,7 @@
 
 using System;
 using Godot;
+using PPO.Envs.Common;
 using PPO.Ppo;
 
 
@@ -102,7 +103,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
 
 
         // --- Thrust ---
-        Engine.Update(Throttle, WorldVars, LocalVel.Z, GlobalPosition, dt);
+        Engine.Update(Throttle, WorldVars, -LocalVel.Z, GlobalPosition, dt);
         Vector3 thrust = -Basis.Column2 * Engine.Thrust;
 
 
@@ -140,24 +141,26 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float yawRateScale = Mathf.Clamp(Mathf.Clamp(1.0f - (Math.Abs(Mathf.RadToDeg(hAoa)) - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f) * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
 
         float sideVel = LocalVel.X;
+        float upVel = LocalVel.Y;
         float stabilizerPitch = liftMagnitude * Parameters.StabilizerPitchStrength;
-        float yawCorrectionRate = yawRateScale * -sideVel * Parameters.YawCorrectionStrength;
+        float yawCorrectionRate = Mathf.Abs(sideVel) * -sideVel * Parameters.YawCorrectionStrength;
+        float pitchCorrection = Mathf.Abs(upVel) * upVel * Parameters.PitchCorrectionStrength;
         float adverseYawRate = Parameters.AdverseYawStrength * Roll * Mathf.Abs(Roll) * speed / Parameters.ReferenceSpeed;
         float sideslipRollRate = Parameters.SideslipRollStrength * sideVel * speed / Parameters.ReferenceSpeed;
         float dihedralCorrection = liftMagnitude * Parameters.DihedralStrength * Mathf.Clamp(-GlobalRotation.Z / Mathf.Pi, -0.2f, 0.2f);
 
         // G-limiting
-        float pitchRate = Mathf.Clamp(Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale), Parameters.YAccelerationLimits.X / -LocalVel.Z, Parameters.YAccelerationLimits.Y / -LocalVel.Z);
+        float pitchRate = Mathf.Clamp(Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale), Parameters.YAccelerationLimits.X / Mathf.Abs(LocalVel.Z), Parameters.YAccelerationLimits.Y / Mathf.Abs(LocalVel.Z));
 
         Vector3 targetLocalAngularVelocity = new(
             pitchRate,
-            Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate + yawCorrectionRate,
+            Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate,
             Mathf.DegToRad(-Roll * Parameters.TurnRates.Z * rateScale) + sideslipRollRate
         );
 
         // Proportional controller
         Vector3 AngVelErr = Parameters.TurnTorqueMultiplier * (targetLocalAngularVelocity - localAngVel);
-        Vector3 localAeroEffects = new(stabilizerPitch, 0.0f, dihedralCorrection);
+        Vector3 localAeroEffects = new(stabilizerPitch + pitchCorrection, yawCorrectionRate, dihedralCorrection);
         Vector3 worldTorque = GlobalBasis * ((Inertia * AngVelErr) + localAeroEffects);
 
         ApplyTorque(worldTorque);
@@ -186,7 +189,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         "Dpch", "Dyaw", "Drol",
         "gupX", "gupY", "gupZ",
         "fwdX", "fwdY", "fwdZ",
-        "aoa",
+        "aofa",
+        "head",
+        "vSpd",
         "pich", "roll", "yaww",
         "thtl", "thst",
     ];
@@ -201,6 +206,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         Vector3 up = GlobalBasis.Y;
         Vector3 fwd = -GlobalBasis.Z;
         float heading = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(fwd.X, -fwd.Z)), 360.0f);
+        float vSpeed = LinearVelocity.Y;
 
         return [
             LocalVel.X, LocalVel.Y, LocalVel.Z,
@@ -209,6 +215,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
             AoA,
+            heading,
+            vSpeed,
             Pitch, Roll, Yaw,
             Throttle, Engine.Thrust / Engine.Parameters.MaxThrust,
         ];

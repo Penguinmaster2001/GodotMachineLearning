@@ -3,35 +3,38 @@
 [ext_resource type="Script" uid="uid://cx4pkypcbtaxb" path="res://Aero/Arcade/ArcadeEngineResource.cs" id="1_mgwab"]
 [ext_resource type="Script" uid="uid://n0nbbdnwwgc4" path="res://Aero/Arcade/ArcadeParametersResource.cs" id="2_updhe"]
 
+[sub_resource type="Curve" id="Curve_mgwab"]
+_data = [Vector2(0, 1), 0.0, -5.21797, 0, 0, Vector2(0.07593688, 0.8261906), -1.2742076, -1.2742076, 0, 0, Vector2(0.4270217, 0.6071429), -0.40238047, -0.40238047, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
+point_count = 4
+
 [sub_resource type="Resource" id="Resource_x68l3"]
 script = ExtResource("1_mgwab")
-MaxThrust = 12000.0
-DensityExp = 0.5
-EngineMaxVel = 150.0
-RamRecoveryVel = 400.0
-ThrottleResponse = 0.2
+MaxThrust = 18000.0
+DensityExp = 0.2
+MachThrust = SubResource("Curve_mgwab")
+ThrottleResponse = 0.5
 metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
 
 [sub_resource type="Curve" id="Curve_5xfn1"]
 _limits = [-1.0, 1.0, -180.0, 180.0]
-_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-35, -0.4), 0.0, 0.0, 0, 0, Vector2(-30, -1), 0.0, 0.0, 0, 0, Vector2(20, 1), 0.0, 0.0, 0, 0, Vector2(25, 0.4), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-26, -0.4), 0.0, 0.0, 0, 0, Vector2(-25, -1), 0.0, 0.0, 0, 0, Vector2(22, 1), 0.0, 0.0, 0, 0, Vector2(23, 0.4), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
 point_count = 8
 
 [resource]
 script = ExtResource("2_updhe")
-DragCoefficient = 0.01
-InducedDragCoefficient = 1.0
+DragCoefficient = 0.005
+InducedDragCoefficient = 0.01
 LiftMultiplier = 10.0
 LiftCurve = SubResource("Curve_5xfn1")
 StallAoA = 20.0
-TurnRates = Vector3(45, 15, 90)
+TurnRates = Vector3(45, 5, 45)
 YAccelerationLimits = Vector2(-20, 40)
 TurnTorqueMultiplier = 2.0
-ReferenceSpeed = 100.0
-YawCorrectionStrength = 0.1
-AdverseYawStrength = 0.2
+ReferenceSpeed = 60.0
+YawCorrectionStrength = 0.0
+AdverseYawStrength = 0.1
 DihedralStrength = 0.05
-StabilizerPitchStrength = 0.005
-SideslipRollStrength = 0.05
+StabilizerPitchStrength = 0.01
+SideslipRollStrength = 0.01
 EngineParameters = SubResource("Resource_x68l3")
 metadata/_custom_type_script = "uid://n0nbbdnwwgc4"

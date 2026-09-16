@@ -9,3 +9,5 @@ _mouseSensitivity = 10000.0
 [node name="RotationOffset" type="Node3D" parent="." unique_id=1479609942]
 
 [node name="Camera3D" type="Camera3D" parent="RotationOffset" unique_id=1629969114]
+near = 0.1
+far = 50000.0

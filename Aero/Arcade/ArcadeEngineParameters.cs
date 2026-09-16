@@ -1,4 +1,8 @@
 
+using System;
+
+
+
 namespace PPO.Aero.Arcade;
 
 
@@ -7,7 +11,6 @@ public class ArcadeEngineParameters
 {
     public float MaxThrust;
     public float DensityExp;
-    public float EngineMaxVel;
-    public float RamRecoveryVel;
+    public Func<float, float> MachThrust;
     public float ThrottleResponse;
 }

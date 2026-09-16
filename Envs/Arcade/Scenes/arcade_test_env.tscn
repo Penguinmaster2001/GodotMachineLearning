@@ -64,8 +64,6 @@ _mouseSensitivity = 100000.0
 [node name="LargeDrone" parent="." unique_id=2019325561 instance=ExtResource("5_gvt6t")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1000, 0)
 linear_velocity = Vector3(0, 0, -100)
-linear_damp = 0.025
-angular_damp = 0.01
 TuningMode = true
 
 [node name="Hud" parent="." unique_id=797787089 instance=ExtResource("6_sqoyx")]

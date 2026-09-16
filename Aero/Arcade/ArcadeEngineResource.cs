@@ -18,10 +18,7 @@ public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEng
     public float DensityExp;
 
     [Export]
-    public float EngineMaxVel;
-
-    [Export]
-    public float RamRecoveryVel;
+    public Curve MachThrust;
 
     [Export]
     public float ThrottleResponse;
@@ -32,8 +29,7 @@ public partial class ArcadeEngineResource : Resource, IComponentConfig<ArcadeEng
     {
         MaxThrust = MaxThrust,
         DensityExp = DensityExp,
-        EngineMaxVel = EngineMaxVel,
-        RamRecoveryVel = RamRecoveryVel,
+        MachThrust = MachThrust.SampleBaked,
         ThrottleResponse = ThrottleResponse,
     };
 }
