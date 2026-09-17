@@ -40,6 +40,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     public int HitStreak { get; set; } = 0;
     public ArcadeParameters Parameters { get; private set; }
     public ArcadeEngine Engine { get; private set; } = new();
+    public Vector3 ControlSurfaceState { get; private set; } = Vector3.Zero;
     #endregion
 
     [Export]
@@ -128,7 +129,6 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             ? -LinearVelocity.Normalized() * Parameters.DragCoefficient * speed * speed
             : Vector3.Zero;
 
-
         float inducedDrag = Parameters.InducedDragCoefficient * cl * cl * liftPlaneSpeedSq;
         drag += speed > 0.01f ? -LinearVelocity.Normalized() * inducedDrag : Vector3.Zero;
 
@@ -150,7 +150,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float dihedralCorrection = liftMagnitude * Parameters.DihedralStrength * Mathf.Clamp(-GlobalRotation.Z / Mathf.Pi, -0.2f, 0.2f);
 
         // G-limiting
-        float pitchRate = Mathf.Clamp(Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale), Parameters.YAccelerationLimits.X / Mathf.Abs(LocalVel.Z), Parameters.YAccelerationLimits.Y / Mathf.Abs(LocalVel.Z));
+        float limitedPitch = Mathf.Clamp(Pitch * Mathf.DegToRad(Parameters.TurnRates.X) * rateScale, Parameters.YAccelerationLimits.X / Mathf.Abs(LocalVel.Z), Parameters.YAccelerationLimits.Y / Mathf.Abs(LocalVel.Z)) / (Mathf.DegToRad(Parameters.TurnRates.X) * rateScale);
 
         // AoA Limiting
         float aoaMult = 1.0f;
@@ -158,13 +158,15 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         {
             aoaMult = Parameters.AoALimitStrength * Mathf.DegToRad(Parameters.AoALimit) / AoA;
         }
-        GD.Print($"{aoaMult}\t{Mathf.DegToRad(Parameters.AoALimit)}\t{Mathf.Abs(AoA)}");
+        limitedPitch *= aoaMult;
 
-        Vector3 targetLocalAngularVelocity = new(
-            aoaMult * pitchRate,
-            Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate,
-            Mathf.DegToRad(-Roll * Parameters.TurnRates.Z * rateScale) + sideslipRollRate
-        );
+        Vector3 targetControls = new(limitedPitch, Yaw, -Roll);
+
+        ControlSurfaceState = ControlSurfaceState.MoveToward(targetControls, Parameters.RateResponsiveness * dt);
+
+        Vector3 targetLocalAngularVelocity =
+            (Parameters.TurnRates * ControlSurfaceState * new Vector3(rateScale, yawRateScale, rateScale) * Mathf.Pi / 180.0f)
+            + new Vector3(0.0f, adverseYawRate, sideslipRollRate);
 
         // Proportional controller
         Vector3 AngVelErr = Parameters.TurnTorqueMultiplier * (targetLocalAngularVelocity - localAngVel);
@@ -198,8 +200,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         "gupX", "gupY", "gupZ",
         "fwdX", "fwdY", "fwdZ",
         "aofa",
-        "head",
-        "vSpd",
+        // "head",
+        // "vSpd",
         "pich", "roll", "yaww",
         "thtl", "thst",
     ];
@@ -223,9 +225,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
             AoA,
-            heading,
-            vSpeed,
-            Pitch, Roll, Yaw,
+            // heading,
+            // vSpeed,
+            ControlSurfaceState.X, ControlSurfaceState.Z, ControlSurfaceState.Y,
             Throttle, Engine.Thrust / Engine.Parameters.MaxThrust,
         ];
     }

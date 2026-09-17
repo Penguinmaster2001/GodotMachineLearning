@@ -4,8 +4,8 @@
 [ext_resource type="Script" uid="uid://n0nbbdnwwgc4" path="res://Aero/Arcade/ArcadeParametersResource.cs" id="2_updhe"]
 
 [sub_resource type="Curve" id="Curve_mgwab"]
-_data = [Vector2(0, 1), 0.0, -5.21797, 0, 0, Vector2(0.07593688, 0.8261906), -1.2742076, -1.2742076, 0, 0, Vector2(0.4270217, 0.6071429), -0.40238047, -0.40238047, 0, 0, Vector2(1, 0.5), 0.0, 0.0, 0, 0]
-point_count = 4
+_data = [Vector2(0, 1), 0.0, -3.8769236, 0, 0, Vector2(0.15833333, 0.70769227), -0.7384615, -0.7384615, 0, 0, Vector2(1, 0.49891824), 0.0, 0.0, 0, 0]
+point_count = 3
 
 [sub_resource type="Resource" id="Resource_x68l3"]
 script = ExtResource("1_mgwab")
@@ -17,7 +17,7 @@ metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
 
 [sub_resource type="Curve" id="Curve_5xfn1"]
 _limits = [-1.0, 1.0, -180.0, 180.0]
-_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-26, -0.4), 0.0, 0.0, 0, 0, Vector2(-25, -1), 0.0, 0.0, 0, 0, Vector2(22, 1), 0.0, 0.0, 0, 0, Vector2(23, 0.4), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-37.460434, -0.6557596), 0.0, 0.0, 0, 0, Vector2(-25.164154, -0.8877872), 0.0, 0.0, 0, 0, Vector2(22, 1), 0.0, 0.0, 0, 0, Vector2(36.0542, 0.78850186), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
 point_count = 8
 
 [resource]
@@ -26,15 +26,17 @@ DragCoefficient = 0.005
 InducedDragCoefficient = 0.01
 LiftMultiplier = 10.0
 LiftCurve = SubResource("Curve_5xfn1")
-StallAoA = 20.0
-TurnRates = Vector3(45, 5, 15)
+StallAoA = 25.0
+TurnRates = Vector3(90, 5, 90)
+RateResponsiveness = 2.0
 YAccelerationLimits = Vector2(-20, 40)
-AoALimit = 15.0
+AoALimit = 20.0
 AoALimitStrength = 0.5
-TurnTorqueMultiplier = 50.0
+TurnTorqueMultiplier = 20.0
 ReferenceSpeed = 60.0
-YawCorrectionStrength = 100.0
-PitchCorrectionStrength = 50.0
+MaxRateScale = 6.0
+YawCorrectionStrength = 1000.0
+PitchCorrectionStrength = 100.0
 AdverseYawStrength = 0.05
 DihedralStrength = 0.01
 StabilizerPitchStrength = 0.1

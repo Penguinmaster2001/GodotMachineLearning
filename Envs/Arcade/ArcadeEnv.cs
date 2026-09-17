@@ -43,7 +43,7 @@ public class ArcadeEnv : IEnv
 
     private int _maxSteps = 256;
 
-    public float TargetAltTolerance = 50.0f;
+    public float TargetAltTolerance = 100.0f;
 
 
 

@@ -16,6 +16,7 @@ public class ArcadeParameters
     public Func<float, float> LiftCurve;
     public float StallAoA;
     public Vector3 TurnRates;
+    public float RateResponsiveness;
     public Vector2 YAccelerationLimits;
     public float AoALimit;
     public float AoALimitStrength;

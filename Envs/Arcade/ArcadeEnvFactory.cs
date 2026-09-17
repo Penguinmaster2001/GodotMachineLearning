@@ -83,7 +83,7 @@ public static class ArcadeEnvFactory
             UpdateEpochs = 4,
             AnnealLR = true,
             EntCoef = 0.001,
-            HiddenLayerSizes = [32, 32]
+            HiddenLayerSizes = [16, 8]
         };
 
         return (options, env);
