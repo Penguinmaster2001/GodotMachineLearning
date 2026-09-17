@@ -25,9 +25,25 @@ public class ArcadeEnv : IEnv
         "pich", "roll", "yaww",
         "thtl", "thst",
         "gndA",
-
-        "altE", "ptcE", "rolE", "hedE", "spdE",
+        "altE", "rolE", "pitE", "hedE", "tdst",
     ];
+    public Func<float, float>[] Normalizations { get; } = new Utils.NormalizationBuilder()
+        .Add(NormalizationFunctions.DivideTanh(60.0f), 3) // vel
+        .Add(NormalizationFunctions.DivideTanh(20.0f), 3) // acc
+        .Add(NormalizationFunctions.DivideTanh(6.0f), 3)  // Datt
+        .Add(NormalizationFunctions.Identity, 3)          // gup
+        .Add(NormalizationFunctions.Identity, 3)          // fwd
+        .Add(NormalizationFunctions.DivideTanh(0.35f))    // alpha
+        .Add(NormalizationFunctions.Identity, 3)          // ctrl
+        .Add(NormalizationFunctions.Identity, 2)          // thtl
+        .Add(NormalizationFunctions.DivideTanh(500.0f))   // gndA
+        .Add(NormalizationFunctions.DivideTanh(500.0f))   // altE
+        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // rolE
+        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // pitE
+        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // hedE
+        // .Add(NormalizationFunctions.DivideTanh(60.0f))    // spdE
+        .Add(NormalizationFunctions.DivideTanh(1000.0f))  // tdst
+        .Build();
     public long InputSize => InputLabels.Length;
 
     public string[] OutputLabels { get; } = ["thtl", "pich", "roll", "yaww"];
@@ -39,19 +55,25 @@ public class ArcadeEnv : IEnv
     private readonly TargetNode[] _targets;
     private readonly int[] _stepCounts;
     private readonly Action<ArcadeAircraft, TargetNode> _reset;
+    private readonly Action<ArcadeAircraft, TargetNode> _resetTarget;
 
 
-    private int _maxSteps = 256;
+    private int _maxSteps = 128;
 
-    public float TargetAltTolerance = 100.0f;
+    public float TargetAltTolerance = 25.0f;
 
 
 
-    public ArcadeEnv(ArcadeAircraft[] aircraft, TargetNode[] targets, Action<ArcadeAircraft, TargetNode> reset)
+    public ArcadeEnv(
+        ArcadeAircraft[] aircraft,
+        TargetNode[] targets,
+        Action<ArcadeAircraft, TargetNode> reset,
+        Action<ArcadeAircraft, TargetNode> resetTarget)
     {
         _aircraft = aircraft;
         _targets = targets;
         _reset = reset;
+        _resetTarget = resetTarget;
 
         _stepCounts = new int[aircraft.Length];
     }
@@ -91,7 +113,7 @@ public class ArcadeEnv : IEnv
                 action[i, 1].item<float>(),
                 action[i, 2].item<float>(),
                 action[i, 3].item<float>(),
-                _aircraft[i].Throttle + (0.5f *  action[i, 0].item<float>())
+                _aircraft[i].Throttle + (0.5f * action[i, 0].item<float>())
             );
         }
     }
@@ -118,23 +140,40 @@ public class ArcadeEnv : IEnv
             truncated[i] = timedOut && !crashed;
 
 
-            var speedIncentive = Mathf.Clamp(-_aircraft[i].LocalVel.Z / 100.0f, 0.0f, 3.0f);
+            var speedIncentive = Mathf.Clamp((-_aircraft[i].LocalVel.Z - 40.0f) / 60.0f, -1.0f, 3.0f);
             var altIncentive = Mathf.Clamp(_aircraft[i].GlobalPosition.Y / _targets[i].GlobalPosition.Y, 0.0f, 1.0f);
             reward[i] = altIncentive + speedIncentive;
+            var angleToTarget = Mathf.Atan2(_aircraft[i].GlobalPosition.X - _targets[i].GlobalPosition.X,
+                _aircraft[i].GlobalPosition.Z - _targets[i].GlobalPosition.Z);
+            var angleErr = Mathf.AngleDifference(_aircraft[i].GlobalRotation.Y, angleToTarget);
 
-            if (_aircraft[i].LocalVel.Z < -50.0f)
+            reward[i] += (0.1f - Mathf.Abs(angleErr)) / 3.0f;
+            reward[i] -= (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) - 50.0f) / 300.0f;
+
+            if (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) < 200.0f)
             {
-                reward[i] += 10.0f;
+                reward[i] += 200.0f;
+                _resetTarget(_aircraft[i], _targets[i]);
+            }
+
+            if (_aircraft[i].LocalVel.Z > -40.0f)
+            {
+                reward[i] -= 3.0f;
             }
 
             if (Mathf.Abs(_aircraft[i].GlobalPosition.Y - _targets[i].GlobalPosition.Y) < TargetAltTolerance)
             {
-                reward[i] += 10.0f;
+                reward[i] += 5.0f;
+            }
+
+            if (_aircraft[i].GlobalPosition.Y < 50.0f)
+            {
+                reward[i] -= 2.0f;
             }
 
             if (crashed)
             {
-                reward[i] -= 20.0f;
+                reward[i] -= 500.0f;
             }
 
             _aircraft[i].Reward = reward[i];
@@ -161,15 +200,18 @@ public class ArcadeEnv : IEnv
 
     private void FillObsRow(float[,] obs, int aircraft)
     {
-        var filler = new Utils.ObsRowFiller(aircraft, obs);
-        filler.Array(_aircraft[aircraft].GetObservation());
+        var filler = new Utils.ObsRowFiller(aircraft, obs, Normalizations);
+        filler.Add(_aircraft[aircraft].GetObservation());
 
-        filler.Float(_aircraft[aircraft].GlobalPosition.Y);
-        filler.Float(_targets[aircraft].GlobalPosition.Y - _aircraft[aircraft].GlobalPosition.Y);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.X);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.Z);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.Y);
-        filler.Float(-100.0f - (_aircraft[aircraft].GlobalBasis.Transposed() * _aircraft[aircraft].LinearVelocity).Z);
+        filler.Add(_aircraft[aircraft].GlobalPosition.Y);
+        filler.Add(_targets[aircraft].GlobalPosition.Y - _aircraft[aircraft].GlobalPosition.Y);
+        filler.Add(_aircraft[aircraft].GlobalRotation.Z);
+        filler.Add(_aircraft[aircraft].GlobalRotation.X);
+        var angleToTarget = Mathf.Atan2(_aircraft[aircraft].GlobalPosition.X - _targets[aircraft].GlobalPosition.X,
+            _aircraft[aircraft].GlobalPosition.Z - _targets[aircraft].GlobalPosition.Z);
+        filler.Add(Mathf.AngleDifference(_aircraft[aircraft].GlobalRotation.Y, angleToTarget));
+        // filler.Add(-60.0f - (_aircraft[aircraft].GlobalBasis.Transposed() * _aircraft[aircraft].LinearVelocity).Z);
+        filler.Add(_aircraft[aircraft].GlobalPosition.DistanceTo(_targets[aircraft].GlobalPosition));
 
         if (filler.Count != InputSize)
         {

@@ -20,7 +20,8 @@ public class ArcadeParameters
     public Vector2 YAccelerationLimits;
     public float AoALimit;
     public float AoALimitStrength;
-    public float TurnTorqueMultiplier;
+    public Vector3 TurnTorqueMultiplier;
+    public Vector3 ControllerGains;
     public float ReferenceSpeed;
     public float MinRateScale = 0.1f;
     public float MaxRateScale = 2.0f;

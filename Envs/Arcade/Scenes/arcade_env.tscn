@@ -57,23 +57,24 @@ script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 1024
-_start = NodePath("First")
-_end = NodePath("Second")
+_num = 256
+_start = NodePath("Start")
+_end = NodePath("End")
 _ui = NodePath("AgentUi")
 Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
-_updateFramePeriod = 20
-_loadCheckpointName = "arcade_small"
-CheckpointName = "arcade_small"
+_updateFramePeriod = 10
+_loadCheckpointName = "arcade_smaller_target"
+CheckpointName = "arcade_smaller_target"
+_loadFromCheckpoint = true
 _saveCheckpoints = true
 
-[node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, 200, -30)
+[node name="Start" type="MeshInstance3D" parent="." unique_id=440840876]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -5000, 200, -5000)
 mesh = SubResource("SphereMesh_a5ajg")
 
-[node name="Second" type="MeshInstance3D" parent="." unique_id=2034012286]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 50, 1000, 30)
+[node name="End" type="MeshInstance3D" parent="." unique_id=2034012286]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 5000, 2000, 5000)
 mesh = SubResource("SphereMesh_nslsp")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
@@ -83,9 +84,12 @@ transform = Transform3D(0.9189263, 0.124524325, 0.37425688, -0.39442942, 0.29011
 environment = SubResource("Environment_a5ajg")
 
 [node name="WatchCam" type="Camera3D" parent="." unique_id=1863966396]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -125, 0, 0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -5000, 3000, 0)
+keep_aspect = 0
 projection = 1
-size = 60.0
+size = 10000.0
+near = 10.0
+far = 10000.0
 
 [node name="CameraFollowsRigidbody" parent="." unique_id=594315423 instance=ExtResource("5_8qel6")]
 _followOffset = Vector3(0, 0, 15)

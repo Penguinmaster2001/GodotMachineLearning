@@ -1,4 +1,6 @@
 
+using System;
+using System.Collections.Generic;
 using Godot;
 
 
@@ -40,9 +42,32 @@ public static class Utils
 
 
 
-    public static string FormatVector3(Vector3 vec, string format = "{0:0.000}")
+    public static string FormatVector3(Vector3 vec, string format = "{0,11:000000.000}")
     {
         return $"({string.Format(format, vec.X)}, {string.Format(format, vec.Y)}, {string.Format(format, vec.Z)})";
+    }
+
+
+
+    public class NormalizationBuilder
+    {
+        private readonly List<Func<float, float>> _normalizations = [];
+
+
+
+        public NormalizationBuilder Add(Func<float, float> func, int repeat = 1)
+        {
+            for (int i = 0; i < repeat; i++)
+            {
+                _normalizations.Add(func);
+            }
+
+            return this;
+        }
+
+
+
+        public Func<float, float>[] Build() => [.. _normalizations];
     }
 
 
@@ -51,42 +76,72 @@ public static class Utils
     {
         private readonly int _row;
         private readonly float[,] _obs;
+        private readonly Func<float, float>[] _normalizations;
         private int _index = 0;
         public int Count => _index;
 
 
 
-        public ObsRowFiller(int row, float[,] obs)
+        public ObsRowFiller(int row, float[,] obs, Func<float, float>[] normalizations)
         {
             _row = row;
             _obs = obs;
+            _normalizations = normalizations;
         }
 
 
 
-        public void Float(float x)
+        public void Add(float x)
         {
-            _obs[_row, _index] = x;
+            _obs[_row, _index] = _normalizations[_index](x);
             _index++;
         }
 
 
 
-        public void Array(float[] arr)
+        public void Add(Vector2 vec)
+        {
+            Add(vec.X);
+            Add(vec.Y);
+        }
+
+
+
+        public void Add(Vector3 vec)
+        {
+            Add(vec.X);
+            Add(vec.Y);
+            Add(vec.Z);
+        }
+
+
+
+        public void Add(float[] arr)
         {
             for (int i = 0; i < arr.Length; i++)
             {
-                Float(arr[i]);
+                Add(arr[i]);
             }
         }
 
 
 
-        public void Vec3(Vector3 vec)
+        public void Add(Vector2[] arr)
         {
-            Float(vec.X);
-            Float(vec.Y);
-            Float(vec.Z);
+            for (int i = 0; i < arr.Length; i++)
+            {
+                Add(arr[i]);
+            }
+        }
+
+
+
+        public void Add(Vector3[] arr)
+        {
+            for (int i = 0; i < arr.Length; i++)
+            {
+                Add(arr[i]);
+            }
         }
     }
 }

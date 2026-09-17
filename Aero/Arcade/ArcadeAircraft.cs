@@ -161,17 +161,22 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         limitedPitch *= aoaMult;
 
         Vector3 targetControls = new(limitedPitch, Yaw, -Roll);
-
-        ControlSurfaceState = ControlSurfaceState.MoveToward(targetControls, Parameters.RateResponsiveness * dt);
-
-        Vector3 targetLocalAngularVelocity =
-            (Parameters.TurnRates * ControlSurfaceState * new Vector3(rateScale, yawRateScale, rateScale) * Mathf.Pi / 180.0f)
-            + new Vector3(0.0f, adverseYawRate, sideslipRollRate);
+        Vector3 targetLocalAngVel = targetControls * Parameters.TurnRates * Mathf.Pi / 180.0f;
 
         // Proportional controller
-        Vector3 AngVelErr = Parameters.TurnTorqueMultiplier * (targetLocalAngularVelocity - localAngVel);
+        Vector3 AngVelErr = Parameters.ControllerGains * (targetLocalAngVel - localAngVel);
+        ControlSurfaceState = ControlSurfaceState.MoveToward(AngVelErr.Clamp(-1.0f, 1.0f), Parameters.RateResponsiveness * dt);
+        // ControlSurfaceState = ControlSurfaceState.MoveToward(targetControls.Clamp(-1.0f, 1.0f), Parameters.RateResponsiveness * dt);
+        // GD.Print($"{Utils.FormatVector3(AngVelErr)}\t{Utils.FormatVector3(ControlSurfaceState)}\t{Utils.FormatVector3(Inertia * ControlSurfaceState * new Vector3(rateScale, yawRateScale, rateScale))}");
+
+        // ControlSurfaceState = ControlSurfaceState.MoveToward(targetControls, Parameters.RateResponsiveness * dt);
+
+        // Vector3 targetLocalAngularVelocity =
+        //     (Parameters.TurnRates * ControlSurfaceState * new Vector3(rateScale, yawRateScale, rateScale) * Mathf.Pi / 180.0f)
+        //     + new Vector3(0.0f, adverseYawRate, sideslipRollRate);
+
         Vector3 localAeroEffects = new(stabilizerPitch + pitchCorrection, yawCorrectionRate, dihedralCorrection);
-        Vector3 worldTorque = GlobalBasis * ((Inertia * AngVelErr) + localAeroEffects);
+        Vector3 worldTorque = GlobalBasis * ((Inertia * Parameters.TurnTorqueMultiplier * (ControlSurfaceState + new Vector3(0.0f, adverseYawRate, sideslipRollRate)) * new Vector3(rateScale, yawRateScale, rateScale)) + localAeroEffects);
 
         ApplyTorque(worldTorque);
     }

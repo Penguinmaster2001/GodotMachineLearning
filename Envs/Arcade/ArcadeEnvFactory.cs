@@ -43,9 +43,10 @@ public static class ArcadeEnvFactory
             useNode(target);
         }
 
+        var scale = 100.0f;
         var env = new ArcadeEnv([.. aircraft], [.. targets], (c, t) =>
         {
-            var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 30.0f;
+            var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 50.0f;
             var indicator = indicatorFactory();
             indicator.Position = c.Position;
             indicator.SetColor(success ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
@@ -61,12 +62,16 @@ public static class ArcadeEnvFactory
             }
 
             c.ResetTo(Utils.RandVector3(rng, start, end), Basis.Identity, 100.0f * Vector3.Forward);
-            t.GlobalPosition = c.GlobalPosition + (rng.RandfRange(0.0f, 0.0f) * Vector3.Up);
+            t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
 
             // c.LinearVelocity = 30.0f * Utils.RandVector3(rng);
             // c.AngularVelocity = 5.0f * Utils.RandVector3(rng);
             // c.Rotation = Mathf.Tau * Utils.RandVector3(rng);
             c.Age = 0.0f;
+        },
+        (c, t) =>
+        {
+            t.GlobalPosition = (t.GlobalPosition + (8.0f * scale * c.GlobalBasis.Column2) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
         });
 
         env.Reset();
@@ -83,7 +88,7 @@ public static class ArcadeEnvFactory
             UpdateEpochs = 4,
             AnnealLR = true,
             EntCoef = 0.001,
-            HiddenLayerSizes = [16, 8]
+            HiddenLayerSizes = [16, 16]
         };
 
         return (options, env);
