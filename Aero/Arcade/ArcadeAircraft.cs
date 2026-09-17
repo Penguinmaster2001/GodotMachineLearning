@@ -152,8 +152,16 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         // G-limiting
         float pitchRate = Mathf.Clamp(Mathf.DegToRad(Pitch * Parameters.TurnRates.X * rateScale), Parameters.YAccelerationLimits.X / Mathf.Abs(LocalVel.Z), Parameters.YAccelerationLimits.Y / Mathf.Abs(LocalVel.Z));
 
+        // AoA Limiting
+        float aoaMult = 1.0f;
+        if (Mathf.Abs(AoA) > Mathf.DegToRad(Parameters.AoALimit))
+        {
+            aoaMult = Parameters.AoALimitStrength * Mathf.DegToRad(Parameters.AoALimit) / AoA;
+        }
+        GD.Print($"{aoaMult}\t{Mathf.DegToRad(Parameters.AoALimit)}\t{Mathf.Abs(AoA)}");
+
         Vector3 targetLocalAngularVelocity = new(
-            pitchRate,
+            aoaMult * pitchRate,
             Mathf.DegToRad(Yaw * Parameters.TurnRates.Y * yawRateScale) + adverseYawRate,
             Mathf.DegToRad(-Roll * Parameters.TurnRates.Z * rateScale) + sideslipRollRate
         );

@@ -33,6 +33,12 @@ public partial class ArcadeParametersResource : Resource, IComponentConfig<Arcad
     public Vector2 YAccelerationLimits;
 
     [Export]
+    public float AoALimit;
+
+    [Export]
+    public float AoALimitStrength;
+
+    [Export]
     public float TurnTorqueMultiplier;
 
     [Export]
@@ -76,6 +82,8 @@ public partial class ArcadeParametersResource : Resource, IComponentConfig<Arcad
         StallAoA = StallAoA,
         TurnRates = TurnRates,
         YAccelerationLimits = YAccelerationLimits,
+        AoALimit = AoALimit,
+        AoALimitStrength = AoALimitStrength,
         TurnTorqueMultiplier = TurnTorqueMultiplier,
         ReferenceSpeed = ReferenceSpeed,
         MinRateScale = MinRateScale,
