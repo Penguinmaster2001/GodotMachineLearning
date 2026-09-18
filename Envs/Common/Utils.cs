@@ -99,6 +99,23 @@ public static class Utils
 
 
 
+        public void Add((float a, float b) pair)
+        {
+            Add(pair.a);
+            Add(pair.b);
+        }
+
+
+
+        public void Add((float a, float b, float c) tuple)
+        {
+            Add(tuple.a);
+            Add(tuple.b);
+            Add(tuple.c);
+        }
+
+
+
         public void Add(Vector2 vec)
         {
             Add(vec.X);
@@ -116,7 +133,7 @@ public static class Utils
 
 
 
-        public void Add(float[] arr)
+        public void Add(params float[] arr)
         {
             for (int i = 0; i < arr.Length; i++)
             {

@@ -16,34 +16,55 @@ namespace PPO.Envs.Arcade;
 public class ArcadeEnv : IEnv
 {
     public string[] InputLabels { get; } = [
-        "velX", "velY", "velZ",
-        "accX", "accY", "accZ",
-        "Dpch", "Dyaw", "Drol",
-        "gupX", "gupY", "gupZ",
-        "fwdX", "fwdY", "fwdZ",
-        "alfa",
-        "pich", "roll", "yaww",
-        "thtl", "thst",
-        "gndA",
-        "altE", "rolE", "pitE", "hedE", "tdst",
+        "gndA",                                 // Altitude above ground
+        "aSpd", "vSpd",                         // Airspeed, vertical speed
+        "loVx", "loVy", "loVz",                 // Local velocities
+        "loAx", "loAy", "loAz",                 // Local accelerations
+        "pich", "sHed", "cHed", "sRol", "cRol", // Attitude, (sin, cos) for heading and roll
+        "gupX", "gupY", "gupZ",                 // Up vector
+        "fwdX", "fwdY", "fwdZ",                 // Forward vector
+        "Dpch", "Dyaw", "Drol",                 // Angular velocity
+        "alfa", "beta", "gama",                 // Angle of attack, sideslip angle, and flight path angle
+        "Cpch", "Cyaw", "Crol",                 // Current attitude controls
+        "Spch", "Syaw", "Srol",                 // Current control surface states
+        "thtl", "thst",                         // Throttle and thrust state
+        "altE", "sHdE", "cHdE", "spdE"          // Target altitude, heading (sin, cos), and speed errors
     ];
+
+    #region Normalization
+    private const float _speedScale = 60.0f;           // airspeed / local velocity components (aSpd, loVx/y/z)
+    private const float _verticalSpeedScale = 20.0f;   // vertical speed and speed-tracking error (vSpd, spdE)
+    private const float _accelerationScale = 20.0f;    // local accelerations (loAx/y/z)
+    private const float _pitchRange = Mathf.Pi / 2.0f; // pitch attitude
+    private const float _angularRateScale = 6.0f;      // angular velocities (Dpch, Dyaw, Drol)
+    private const float _angleOfAttackScale = 0.35f;   // alpha, sized to normal pre-stall AoA band
+    private const float _sideslipScale = 0.20f;        // beta
+    private const float _flightPathAngleScale = 0.35f; // gamma
+    private const float _groundAltitudeScale = 500.0f; // gndA
+    private const float _altitudeErrorScale = 100.0f;  // altE
+
     public Func<float, float>[] Normalizations { get; } = new Utils.NormalizationBuilder()
-        .Add(NormalizationFunctions.DivideTanh(60.0f), 3) // vel
-        .Add(NormalizationFunctions.DivideTanh(20.0f), 3) // acc
-        .Add(NormalizationFunctions.DivideTanh(6.0f), 3)  // Datt
-        .Add(NormalizationFunctions.Identity, 3)          // gup
-        .Add(NormalizationFunctions.Identity, 3)          // fwd
-        .Add(NormalizationFunctions.DivideTanh(0.35f))    // alpha
-        .Add(NormalizationFunctions.Identity, 3)          // ctrl
-        .Add(NormalizationFunctions.Identity, 2)          // thtl
-        .Add(NormalizationFunctions.DivideTanh(500.0f))   // gndA
-        .Add(NormalizationFunctions.DivideTanh(500.0f))   // altE
-        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // rolE
-        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // pitE
-        .Add(NormalizationFunctions.Divide(Mathf.Pi))     // hedE
-        // .Add(NormalizationFunctions.DivideTanh(60.0f))    // spdE
-        .Add(NormalizationFunctions.DivideTanh(1000.0f))  // tdst
+        .Add(NormalizationFunctions.DivideTanh(_groundAltitudeScale))    // gndA
+        .Add(NormalizationFunctions.DivideTanh(_speedScale))             // aSpd
+        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // vSpd
+        .Add(NormalizationFunctions.DivideTanh(_speedScale), 3)          // loV
+        .Add(NormalizationFunctions.DivideTanh(_accelerationScale), 3)   // loA
+        .Add(NormalizationFunctions.Divide(_pitchRange))                 // pich
+        .Add(NormalizationFunctions.Identity, 4)                         // sHed, cHed, sRol, cRol
+        .Add(NormalizationFunctions.Identity, 3)                         // gup
+        .Add(NormalizationFunctions.Identity, 3)                         // fwd
+        .Add(NormalizationFunctions.DivideTanh(_angularRateScale), 3)    // Datt
+        .Add(NormalizationFunctions.DivideTanh(_angleOfAttackScale))     // alfa
+        .Add(NormalizationFunctions.DivideTanh(_sideslipScale))          // beta
+        .Add(NormalizationFunctions.DivideTanh(_flightPathAngleScale))   // gama
+        .Add(NormalizationFunctions.Identity, 3)                         // ctrl (C)
+        .Add(NormalizationFunctions.Identity, 3)                         // ctrl (S)
+        .Add(NormalizationFunctions.Identity, 2)                         // thtl, thst
+        .Add(NormalizationFunctions.DivideTanh(_altitudeErrorScale))     // altE
+        .Add(NormalizationFunctions.Identity, 2)                         // sHdE, cHdE
+        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // spdE
         .Build();
+    #endregion
     public long InputSize => InputLabels.Length;
 
     public string[] OutputLabels { get; } = ["thtl", "pich", "roll", "yaww"];
@@ -147,8 +168,8 @@ public class ArcadeEnv : IEnv
                 _aircraft[i].GlobalPosition.Z - _targets[i].GlobalPosition.Z);
             var angleErr = Mathf.AngleDifference(_aircraft[i].GlobalRotation.Y, angleToTarget);
 
-            reward[i] += (0.1f - Mathf.Abs(angleErr)) / 3.0f;
-            reward[i] -= (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) - 50.0f) / 300.0f;
+            // reward[i] += (0.1f - Mathf.Abs(angleErr)) / 3.0f;
+            // reward[i] -= (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) - 50.0f) / 300.0f;
 
             if (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) < 200.0f)
             {
@@ -198,20 +219,58 @@ public class ArcadeEnv : IEnv
 
 
 
-    private void FillObsRow(float[,] obs, int aircraft)
+    private void FillObsRow(float[,] obs, int aircraftId)
     {
-        var filler = new Utils.ObsRowFiller(aircraft, obs, Normalizations);
-        filler.Add(_aircraft[aircraft].GetObservation());
+        var filler = new Utils.ObsRowFiller(aircraftId, obs, Normalizations);
+        var aircraft = _aircraft[aircraftId];
+        var inverseBasis = aircraft.GlobalBasis.Transposed();
+        var target = _targets[aircraftId];
+        var speed = aircraft.LinearVelocity.Length();
 
-        filler.Add(_aircraft[aircraft].GlobalPosition.Y);
-        filler.Add(_targets[aircraft].GlobalPosition.Y - _aircraft[aircraft].GlobalPosition.Y);
-        filler.Add(_aircraft[aircraft].GlobalRotation.Z);
-        filler.Add(_aircraft[aircraft].GlobalRotation.X);
-        var angleToTarget = Mathf.Atan2(_aircraft[aircraft].GlobalPosition.X - _targets[aircraft].GlobalPosition.X,
-            _aircraft[aircraft].GlobalPosition.Z - _targets[aircraft].GlobalPosition.Z);
-        filler.Add(Mathf.AngleDifference(_aircraft[aircraft].GlobalRotation.Y, angleToTarget));
-        // filler.Add(-60.0f - (_aircraft[aircraft].GlobalBasis.Transposed() * _aircraft[aircraft].LinearVelocity).Z);
-        filler.Add(_aircraft[aircraft].GlobalPosition.DistanceTo(_targets[aircraft].GlobalPosition));
+        // "gndA",                                 // Altitude above ground
+        filler.Add(aircraft.GlobalPosition.Y);
+
+        // "aSpd", "vSpd",                         // Airspeed, vertical speed
+        filler.Add(speed, aircraft.LinearVelocity.Y);
+
+        // "loVx", "loVy", "loVz",                 // Local velocities
+        filler.Add(aircraft.LocalVel);
+
+        // "loAx", "loAy", "loAz",                 // Local accelerations
+        filler.Add(inverseBasis * aircraft.Acceleration);
+
+        // "pich", "sHed", "cHed", "sRol", "cRol", // Attitude, (sin, cos) for heading and roll
+        filler.Add(aircraft.GlobalRotation.X);
+        filler.Add(Mathf.SinCos(aircraft.GlobalRotation.Y));
+        filler.Add(Mathf.SinCos(aircraft.GlobalRotation.Z));
+
+        // "gupX", "gupY", "gupZ",                 // Up vector
+        filler.Add(aircraft.GlobalBasis.X);
+
+        // "fwdX", "fwdY", "fwdZ",                 // Forward vector
+        filler.Add(aircraft.GlobalBasis.Z);
+
+        // "Dpch", "Dyaw", "Drol",                 // Angular velocity
+        filler.Add(inverseBasis * aircraft.AngularVelocity);
+
+        // "alfa", "beta", "gama",                 // Angle of attack, sideslip angle, and flight path angle
+        filler.Add(aircraft.AoA, aircraft.SideslipAngle, aircraft.FlightPathAngle);
+
+        // "Cpch", "Cyaw", "Crol",                 // Current attitude controls
+        filler.Add(aircraft.Pitch, aircraft.Yaw, aircraft.Roll);
+
+        // "Spch", "Syaw", "Srol",                 // Current control surface states
+        filler.Add(aircraft.ControlSurfaceState);
+
+        // "thtl", "thst",                         // Throttle and thrust state
+        filler.Add(aircraft.Throttle, aircraft.Engine.Thrust / aircraft.Engine.Parameters.MaxThrust);
+
+        // "altE", "sHdE", "cHdE", "spdE"          // Target altitude, heading (sin, cos), and speed errors
+        filler.Add(aircraft.GlobalPosition.Y - target.GlobalPosition.Y);
+        var angleToTarget = Mathf.Atan2(aircraft.GlobalPosition.X - target.GlobalPosition.X,
+            aircraft.GlobalPosition.Z - target.GlobalPosition.Z);
+        filler.Add(Mathf.SinCos(Mathf.AngleDifference(aircraft.GlobalRotation.Y, angleToTarget)));
+        filler.Add(aircraft.TargetSpeed - speed);
 
         if (filler.Count != InputSize)
         {

@@ -25,10 +25,11 @@ _statsLabel = NodePath("Stats")
 
 [node name="Inputs" type="Label" parent="." unique_id=430553744]
 layout_mode = 0
-offset_left = 13.0
-offset_top = 31.0
-offset_right = 179.0
-offset_bottom = 106.0
+offset_left = 2.0
+offset_top = 4.0
+offset_right = 168.0
+offset_bottom = 79.0
+theme_override_font_sizes/font_size = 10
 text = "Input"
 
 [node name="Reward" type="Label" parent="." unique_id=1236188897]

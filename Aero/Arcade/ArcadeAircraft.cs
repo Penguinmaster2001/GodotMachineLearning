@@ -35,12 +35,15 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     private Vector3 _prevVel;
     public Vector3 Acceleration { get; set; }
     public float AoA { get; private set; }
+    public float SideslipAngle { get; private set; }
+    public float FlightPathAngle { get; private set; }
     public float Age { get; set; }
     public float Reward { get; set; }
     public int HitStreak { get; set; } = 0;
     public ArcadeParameters Parameters { get; private set; }
     public ArcadeEngine Engine { get; private set; } = new();
     public Vector3 ControlSurfaceState { get; private set; } = Vector3.Zero;
+    public float TargetSpeed { get; set; }
     #endregion
 
     [Export]
@@ -59,6 +62,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
 
         Parameters = ParametersResource.Create();
         Engine.Parameters = Parameters.EngineParameters;
+        TargetSpeed = Parameters.ReferenceSpeed;
     }
 
 
@@ -89,6 +93,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         {
             Parameters = ParametersResource.Create();
             Engine.Parameters = Parameters.EngineParameters;
+            TargetSpeed = Parameters.ReferenceSpeed;
         }
 
         float dt = (float)delta;
@@ -113,7 +118,8 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float w = -LocalVel.Y; // downward relative wind component
         float v = -LocalVel.X;
         AoA = (Mathf.Abs(u) > 0.01f || Mathf.Abs(w) > 0.01f) ? Mathf.Atan2(w, u) : 0.0f;
-        float hAoa = (Mathf.Abs(u) > 0.01f || Mathf.Abs(v) > 0.01f) ? Mathf.Atan2(v, u) : 0.0f;
+        SideslipAngle = (Mathf.Abs(u) > 0.01f || Mathf.Abs(v) > 0.01f) ? Mathf.Atan2(v, u) : 0.0f;
+        FlightPathAngle = speed > 0.01f ? Mathf.Asin(LinearVelocity.Y / speed) : 0.0f;
         float liftPlaneSpeedSq = LocalVel.Y * LocalVel.Y + LocalVel.Z * LocalVel.Z; // excludes lateral/spanwise X
 
         float cl = Parameters.LiftCurve is not null ? Parameters.LiftCurve(Mathf.RadToDeg(AoA)) : 0.0f;
@@ -138,7 +144,7 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float aoaDeg = Mathf.Abs(Mathf.RadToDeg(AoA));
         float controlEffectiveness = Mathf.Clamp(1.0f - (aoaDeg - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f);
         float rateScale = Mathf.Clamp(controlEffectiveness * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
-        float yawRateScale = Mathf.Clamp(Mathf.Clamp(1.0f - (Math.Abs(Mathf.RadToDeg(hAoa)) - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f) * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
+        float yawRateScale = Mathf.Clamp(Mathf.Clamp(1.0f - (Math.Abs(Mathf.RadToDeg(SideslipAngle)) - Parameters.StallAoA) / 10.0f, 0.2f, 1.0f) * speed * speed / (Parameters.ReferenceSpeed * Parameters.ReferenceSpeed), Parameters.MinRateScale, Parameters.MaxRateScale);
 
         float sideVel = LocalVel.X;
         float upVel = LocalVel.Y;
