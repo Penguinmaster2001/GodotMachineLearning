@@ -28,7 +28,7 @@ public class ArcadeEnv : IEnv
         "Cpch", "Cyaw", "Crol",                 // Current attitude controls
         "Spch", "Syaw", "Srol",                 // Current control surface states
         "thtl", "thst",                         // Throttle and thrust state
-        "altE", "sHdE", "cHdE", "spdE"          // Target altitude, heading (sin, cos), and speed errors
+        "spdE", "vSdE", "DHdE"                  // Target v speed, speed, and turn rate errors
     ];
 
     #region Normalization
@@ -41,7 +41,6 @@ public class ArcadeEnv : IEnv
     private const float _sideslipScale = 0.20f;        // beta
     private const float _flightPathAngleScale = 0.35f; // gamma
     private const float _groundAltitudeScale = 500.0f; // gndA
-    private const float _altitudeErrorScale = 100.0f;  // altE
 
     public Func<float, float>[] Normalizations { get; } = new Utils.NormalizationBuilder()
         .Add(NormalizationFunctions.DivideTanh(_groundAltitudeScale))    // gndA
@@ -60,9 +59,9 @@ public class ArcadeEnv : IEnv
         .Add(NormalizationFunctions.Identity, 3)                         // ctrl (C)
         .Add(NormalizationFunctions.Identity, 3)                         // ctrl (S)
         .Add(NormalizationFunctions.Identity, 2)                         // thtl, thst
-        .Add(NormalizationFunctions.DivideTanh(_altitudeErrorScale))     // altE
-        .Add(NormalizationFunctions.Identity, 2)                         // sHdE, cHdE
-        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // spdE
+        .Add(NormalizationFunctions.DivideTanh(_speedScale))             // spdE
+        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // vSdE
+        .Add(NormalizationFunctions.DivideTanh(_angularRateScale))       // DHdE
         .Build();
     #endregion
     public long InputSize => InputLabels.Length;
@@ -79,7 +78,7 @@ public class ArcadeEnv : IEnv
     private readonly Action<ArcadeAircraft, TargetNode> _resetTarget;
 
 
-    private int _maxSteps = 128;
+    private int _maxSteps = 1024;
 
     public float TargetAltTolerance = 25.0f;
 
@@ -154,47 +153,43 @@ public class ArcadeEnv : IEnv
                 _stepCounts[i]++;
             }
 
+            const float _speedTolerance = 15.0f;     // m/s
+            const float _vSpeedTolerance = 2.0f;      // m/s
+            const float _turnRateTolerance = 0.3f;    // rad/s
+            const float _groundSafetyAltitude = 50.0f;
+            const float _groundProximityPenalty = 2.0f;
+            const float _crashPenalty = 500.0f;
+
+            _aircraft[i].TargetVSpeed = Mathf.Clamp(0.5f * (_aircraft[i].GlobalPosition.Y - _targets[i].GlobalPosition.Y), -5.0f, 5.0f);
+
+            static float TrackingReward(float error, float tolerance)
+            {
+                return 1.0f - Mathf.Clamp(Mathf.Abs(error) / tolerance, 0.0f, 1.0f);
+            }
+
             var crashed = _aircraft[i].GlobalPosition.Y <= 0.0f;
             terminated[i] = crashed;
 
             bool timedOut = _stepCounts[i] >= _maxSteps;
             truncated[i] = timedOut && !crashed;
 
+            var speed = -_aircraft[i].LocalVel.Z;
+            var speedErr = speed - _aircraft[i].TargetSpeed;
+            var vSpeedErr = _aircraft[i].LinearVelocity.Y - _aircraft[i].TargetVSpeed;
+            var turnRateErr = _aircraft[i].TurnRate - _aircraft[i].TargetTurnRate;
 
-            var speedIncentive = Mathf.Clamp((-_aircraft[i].LocalVel.Z - 40.0f) / 60.0f, -1.0f, 3.0f);
-            var altIncentive = Mathf.Clamp(_aircraft[i].GlobalPosition.Y / _targets[i].GlobalPosition.Y, 0.0f, 1.0f);
-            reward[i] = altIncentive + speedIncentive;
-            var angleToTarget = Mathf.Atan2(_aircraft[i].GlobalPosition.X - _targets[i].GlobalPosition.X,
-                _aircraft[i].GlobalPosition.Z - _targets[i].GlobalPosition.Z);
-            var angleErr = Mathf.AngleDifference(_aircraft[i].GlobalRotation.Y, angleToTarget);
+            reward[i] = TrackingReward(speedErr, _speedTolerance)
+                  + TrackingReward(vSpeedErr, _vSpeedTolerance)
+                  + TrackingReward(turnRateErr, _turnRateTolerance);
 
-            // reward[i] += (0.1f - Mathf.Abs(angleErr)) / 3.0f;
-            // reward[i] -= (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) - 50.0f) / 300.0f;
-
-            if (_aircraft[i].GlobalPosition.DistanceTo(_targets[i].GlobalPosition) < 200.0f)
+            if (_aircraft[i].GlobalPosition.Y < _groundSafetyAltitude)
             {
-                reward[i] += 200.0f;
-                _resetTarget(_aircraft[i], _targets[i]);
-            }
-
-            if (_aircraft[i].LocalVel.Z > -40.0f)
-            {
-                reward[i] -= 3.0f;
-            }
-
-            if (Mathf.Abs(_aircraft[i].GlobalPosition.Y - _targets[i].GlobalPosition.Y) < TargetAltTolerance)
-            {
-                reward[i] += 5.0f;
-            }
-
-            if (_aircraft[i].GlobalPosition.Y < 50.0f)
-            {
-                reward[i] -= 2.0f;
+                reward[i] -= _groundProximityPenalty;
             }
 
             if (crashed)
             {
-                reward[i] -= 500.0f;
+                reward[i] -= _crashPenalty;
             }
 
             _aircraft[i].Reward = reward[i];
@@ -265,12 +260,10 @@ public class ArcadeEnv : IEnv
         // "thtl", "thst",                         // Throttle and thrust state
         filler.Add(aircraft.Throttle, aircraft.Engine.Thrust / aircraft.Engine.Parameters.MaxThrust);
 
-        // "altE", "sHdE", "cHdE", "spdE"          // Target altitude, heading (sin, cos), and speed errors
-        filler.Add(aircraft.GlobalPosition.Y - target.GlobalPosition.Y);
-        var angleToTarget = Mathf.Atan2(aircraft.GlobalPosition.X - target.GlobalPosition.X,
-            aircraft.GlobalPosition.Z - target.GlobalPosition.Z);
-        filler.Add(Mathf.SinCos(Mathf.AngleDifference(aircraft.GlobalRotation.Y, angleToTarget)));
-        filler.Add(aircraft.TargetSpeed - speed);
+        // "spdE", "vSdE", "DHdE"                  // Target speed, v speed, and turn rate errors
+        filler.Add(aircraft.TargetSpeed - speed,
+            aircraft.TargetVSpeed - aircraft.LinearVelocity.Y,
+            aircraft.TargetTurnRate - aircraft.TurnRate);
 
         if (filler.Count != InputSize)
         {

@@ -62,12 +62,16 @@ public static class ArcadeEnvFactory
             }
 
             c.ResetTo(Utils.RandVector3(rng, start, end), Basis.Identity, 100.0f * Vector3.Forward);
-            t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
+            t.GlobalPosition = c.GlobalPosition + (rng.RandfRange(-scale, scale) * Vector3.Up);
+            // t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
 
             // c.LinearVelocity = 30.0f * Utils.RandVector3(rng);
             // c.AngularVelocity = 5.0f * Utils.RandVector3(rng);
             // c.Rotation = Mathf.Tau * Utils.RandVector3(rng);
             c.Age = 0.0f;
+            c.TargetSpeed = 55.0f;
+            c.TargetVSpeed = 0.0f;
+            c.TargetTurnRate = 0.0f;
         },
         (c, t) =>
         {

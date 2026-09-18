@@ -44,6 +44,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     public ArcadeEngine Engine { get; private set; } = new();
     public Vector3 ControlSurfaceState { get; private set; } = Vector3.Zero;
     public float TargetSpeed { get; set; }
+    public float TargetVSpeed { get; set; }
+    public float TargetTurnRate { get; set; }
+    public float TurnRate { get => -AngularVelocity.Y; } // - (AngularVelocity.Z * Mathf.Sin(GlobalRotation.X)); }
     #endregion
 
     [Export]
@@ -211,8 +214,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         "gupX", "gupY", "gupZ",
         "fwdX", "fwdY", "fwdZ",
         "aofa",
-        // "head",
-        // "vSpd",
+        "head",
+        "dhed",
+        "vSpd",
         "pich", "roll", "yaww",
         "thtl", "thst",
     ];
@@ -236,8 +240,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
             up.X, up.Y, up.Z,
             fwd.X, fwd.Y, fwd.Z,
             AoA,
-            // heading,
-            // vSpeed,
+            heading,
+            Mathf.RadToDeg(TurnRate),
+            vSpeed,
             ControlSurfaceState.X, ControlSurfaceState.Z, ControlSurfaceState.Y,
             Throttle, Engine.Thrust / Engine.Parameters.MaxThrust,
         ];
