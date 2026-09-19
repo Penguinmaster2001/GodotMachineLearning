@@ -5,7 +5,7 @@
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6lm8f"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_a5ajg"]
-size = Vector3(2, 2, 2)
+size = Vector3(25, 25, 25)
 
 [node name="ChaseTarget" type="Node3D" unique_id=1581189932 node_paths=PackedStringArray("Mesh")]
 script = ExtResource("1_6lm8f")

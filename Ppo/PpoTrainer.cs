@@ -85,7 +85,7 @@ public class PpoTrainer
 
         Console.WriteLine(_device);
 
-        Agent = agent.to(_device);
+        Agent = agent.ToDevice(_device);
         _optimizer = torch.optim.Adam(agent.parameters(), lr: _args.LearningRate, eps: 1e-5);
 
         _episodeReturnAccum = new float[_args.NumEnvs];

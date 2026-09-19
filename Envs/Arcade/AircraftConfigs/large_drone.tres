@@ -9,7 +9,7 @@ point_count = 3
 
 [sub_resource type="Resource" id="Resource_x68l3"]
 script = ExtResource("1_mgwab")
-MaxThrust = 18000.0
+MaxThrust = 20000.0
 DensityExp = 0.2
 MachThrust = SubResource("Curve_mgwab")
 ThrottleResponse = 0.5
@@ -32,7 +32,7 @@ RateResponsiveness = 6.0
 YAccelerationLimits = Vector2(-20, 40)
 AoALimit = 20.0
 AoALimitStrength = 0.5
-TurnTorqueMultiplier = Vector3(5, 1, 2)
+TurnTorqueMultiplier = Vector3(10, 1, 2)
 ControllerGains = Vector3(2, 1, 1)
 ReferenceSpeed = 60.0
 MaxRateScale = 6.0

@@ -57,15 +57,15 @@ script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 512
+_num = 256
 _start = NodePath("Start")
 _end = NodePath("End")
 _ui = NodePath("AgentUi")
 Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
-_updateFramePeriod = 10
-_loadCheckpointName = "arcade_large_target_alt"
-CheckpointName = "arcade_large_target_alt"
+_updateFramePeriod = 6
+_loadCheckpointName = "arcade_small"
+CheckpointName = "arcade_small"
 _loadFromCheckpoint = true
 _saveCheckpoints = true
 
@@ -74,7 +74,7 @@ transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -9000, 200, -9000)
 mesh = SubResource("SphereMesh_a5ajg")
 
 [node name="End" type="MeshInstance3D" parent="." unique_id=2034012286]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 9000, 2000, 9000)
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 9000, 5000, 9000)
 mesh = SubResource("SphereMesh_nslsp")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
@@ -93,13 +93,16 @@ far = 30000.0
 
 [node name="CameraFollowsRigidbody" parent="." unique_id=594315423 instance=ExtResource("5_8qel6")]
 _followOffset = Vector3(0, 0, 15)
-_mouseSensitivity = 100000.0
+_snappiness = 100.0
+TrackAngle = false
+_mouseSensitivity = 20000.0
+_followMode = 1
 
 [node name="AgentUi" parent="." unique_id=797787089 instance=ExtResource("6_um50m")]
 
 [node name="Retimer" type="Node" parent="." unique_id=1439623693]
 script = ExtResource("7_88gwi")
-MaxFps = 15.0
+MaxFps = 20.0
 Enabled = true
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=803138517]

@@ -45,6 +45,9 @@ public partial class TrainerBootstrap : Node
     public int CurrentCamera = 0;
 
     [Export]
+    public int CurrentPlane = 0;
+
+    [Export]
     private CameraFollowsRigidbody _followCam;
 
     [Export]
@@ -91,8 +94,6 @@ public partial class TrainerBootstrap : Node
             () => _resultIndicator.Instantiate<ResultIndicator>(),
             n => AddChild(n));
 
-        _followCam.ToFollow = _aircrafts[0];
-
         if (_loadFromCheckpoint)
         {
             _trainer = PpoTrainer.Load(env, options, ProjectSettings.GlobalizePath(Path.Combine("res://", "Checkpoints", _loadCheckpointName)));
@@ -107,8 +108,8 @@ public partial class TrainerBootstrap : Node
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
         _ui.Stats = _trainer.Stats;
-        _ui.EnvAgent = _aircrafts[0];
-        _ui.Target = _targets[0];
+
+        SetCurrentPlane();
     }
 
 
@@ -133,19 +134,45 @@ public partial class TrainerBootstrap : Node
 
     public override void _Input(InputEvent input)
     {
-        if (input is InputEventKey { Pressed: true, Keycode: Key.Space } key)
+        switch (input)
         {
-            CurrentCamera = (CurrentCamera + Cameras.Count + (key.ShiftPressed ? -1 : 1)) % Cameras.Count;
+            case InputEventKey { Pressed: true, Keycode: Key.Space } key:
+                {
+                    CurrentCamera = (CurrentCamera + Cameras.Count + (key.ShiftPressed ? -1 : 1)) % Cameras.Count;
 
-            switch (Cameras[CurrentCamera])
-            {
-                case Camera3D camera:
-                    camera.MakeCurrent();
+                    switch (Cameras[CurrentCamera])
+                    {
+                        case Camera3D camera:
+                            camera.MakeCurrent();
+                            break;
+                        case CameraFollowsRigidbody camera:
+                            camera.MakeCurrent();
+                            break;
+                    }
+
                     break;
-                case CameraFollowsRigidbody camera:
-                    camera.MakeCurrent();
-                    break;
-            }
+                }
+
+            case InputEventKey { Pressed: true, Keycode: Key.Right }:
+                CurrentPlane += 1;
+                SetCurrentPlane();
+                break;
+            case InputEventKey { Pressed: true, Keycode: Key.Left }:
+                CurrentPlane -= 1;
+                SetCurrentPlane();
+                break;
         }
+    }
+
+
+
+    private void SetCurrentPlane()
+    {
+        CurrentPlane = Mathf.PosMod(CurrentPlane, _aircrafts.Count);
+
+        _ui.EnvAgent = _aircrafts[CurrentPlane];
+        _ui.Target = _targets[CurrentPlane];
+        _ui.AgentId = CurrentPlane;
+        _followCam.ToFollow = _aircrafts[CurrentPlane];
     }
 }

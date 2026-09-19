@@ -13,16 +13,13 @@ public static class Utils
 {
     public static Color GenerateColor(int i, int num)
     {
-        var hue = (float)i / num;
-        var (up, dn) = (0.85f, 0.5f);
-        var (lightness, saturation) = (i % 4) switch
-        {
-            0 => (up, up),
-            1 => (up, dn),
-            2 => (dn, up),
-            3 => (dn, dn),
-            _ => (0.0f, 0.0f)
-        };
+        var angle = i % Mathf.Tau;
+        var radius = Mathf.Sqrt(0.1f + (i * 0.8f / num));
+        var height = 0.1f + 0.8f * ((100.0f * i / num) % 1.0f);
+
+        var hue = angle / Mathf.Tau;
+        var lightness = radius;
+        var saturation = height;
         return Color.FromOkHsl(hue, saturation, lightness);
     }
 

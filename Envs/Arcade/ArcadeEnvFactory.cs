@@ -43,7 +43,7 @@ public static class ArcadeEnvFactory
             useNode(target);
         }
 
-        var scale = 100.0f;
+        // var scale = 1000.0f;
         var env = new ArcadeEnv([.. aircraft], [.. targets], (c, t) =>
         {
             var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 50.0f;
@@ -61,21 +61,23 @@ public static class ArcadeEnvFactory
                 c.HitStreak = 0;
             }
 
-            c.ResetTo(Utils.RandVector3(rng, start, end), Basis.Identity, 100.0f * Vector3.Forward);
-            t.GlobalPosition = c.GlobalPosition + (rng.RandfRange(-scale, scale) * Vector3.Up);
+            c.ResetTo(Utils.RandVector3(rng, start, end), Basis.FromEuler(new(0.0f, rng.RandfRange(-Mathf.Pi, Mathf.Pi), 0.0f)), 100.0f * Vector3.Forward);
+            t.GlobalPosition = Utils.RandVector3(rng, start, end);
+            t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
             // t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
 
             // c.LinearVelocity = 30.0f * Utils.RandVector3(rng);
             // c.AngularVelocity = 5.0f * Utils.RandVector3(rng);
             // c.Rotation = Mathf.Tau * Utils.RandVector3(rng);
             c.Age = 0.0f;
-            c.TargetSpeed = 55.0f;
+            c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
             c.TargetTurnRate = 0.0f;
         },
         (c, t) =>
         {
-            t.GlobalPosition = (t.GlobalPosition + (8.0f * scale * c.GlobalBasis.Column2) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
+            t.GlobalPosition = Utils.RandVector3(rng, start, end);
+            t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
         });
 
         env.Reset();
@@ -90,9 +92,9 @@ public static class ArcadeEnvFactory
             BatchSize = 512 * env.NumEnvs,
             MinibatchSize = 8196,
             UpdateEpochs = 4,
-            AnnealLR = true,
+            AnnealLR = false,
             EntCoef = 0.001,
-            HiddenLayerSizes = [32, 32]
+            HiddenLayerSizes = [16, 16]
         };
 
         return (options, env);

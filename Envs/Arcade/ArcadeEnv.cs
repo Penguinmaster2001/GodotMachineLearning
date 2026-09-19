@@ -29,6 +29,7 @@ public class ArcadeEnv : IEnv
         "Spch", "Syaw", "Srol",                 // Current control surface states
         "thtl", "thst",                         // Throttle and thrust state
         "spdE", "vSdE", "DHdE"                  // Target v speed, speed, and turn rate errors
+        // TODO: Add aggression (how smooth / rapidly to correct errors), mach number, air density
     ];
 
     #region Normalization
@@ -36,7 +37,7 @@ public class ArcadeEnv : IEnv
     private const float _verticalSpeedScale = 20.0f;   // vertical speed and speed-tracking error (vSpd, spdE)
     private const float _accelerationScale = 20.0f;    // local accelerations (loAx/y/z)
     private const float _pitchRange = Mathf.Pi / 2.0f; // pitch attitude
-    private const float _angularRateScale = 6.0f;      // angular velocities (Dpch, Dyaw, Drol)
+    private const float _angularRateScale = 3.0f;      // angular velocities (Dpch, Dyaw, Drol)
     private const float _angleOfAttackScale = 0.35f;   // alpha, sized to normal pre-stall AoA band
     private const float _sideslipScale = 0.20f;        // beta
     private const float _flightPathAngleScale = 0.35f; // gamma
@@ -78,7 +79,7 @@ public class ArcadeEnv : IEnv
     private readonly Action<ArcadeAircraft, TargetNode> _resetTarget;
 
 
-    private int _maxSteps = 1024;
+    private int _maxSteps = 4096;
 
     public float TargetAltTolerance = 25.0f;
 
@@ -153,18 +154,46 @@ public class ArcadeEnv : IEnv
                 _stepCounts[i]++;
             }
 
+            // if (_stepCounts[i] % 128 == 0)
+            // {
+            //     _resetTarget(_aircraft[i], _targets[i]);
+            // }
+
+            var target = _targets[i];
+            // var target = _aircraft[(i + 1) % _aircraft.Length];
+
             const float _speedTolerance = 15.0f;     // m/s
-            const float _vSpeedTolerance = 2.0f;      // m/s
-            const float _turnRateTolerance = 0.3f;    // rad/s
+            const float _vSpeedTolerance = 1.0f;      // m/s
+            const float _turnRateTolerance = 0.017f;    // rad/s
             const float _groundSafetyAltitude = 50.0f;
             const float _groundProximityPenalty = 2.0f;
             const float _crashPenalty = 500.0f;
+            const float _actionSmoothnessWeight = 0.01f;
+            const float _angularAccelSmoothnessWeight = 0.05f;
+            const float _sideslipTolerance = 0.03f;
+            const float _controlEffortWeight = 0.05f; 
 
-            _aircraft[i].TargetVSpeed = Mathf.Clamp(0.5f * (_aircraft[i].GlobalPosition.Y - _targets[i].GlobalPosition.Y), -5.0f, 5.0f);
+            var action = new Vector3(_aircraft[i].Pitch, _aircraft[i].Yaw, _aircraft[i].Roll);
+            var actionDelta = action - _aircraft[i].PrevControls;
+            var actionSmoothnessPenalty = actionDelta.LengthSquared();
+            _aircraft[i].PrevControls = action;
 
-            static float TrackingReward(float error, float tolerance)
+            var angularAccel = _aircraft[i].AngularVelocity - _aircraft[i].PrevAngularVel;
+            var angularAccelPenalty = angularAccel.LengthSquared();
+            var controlEffortPenalty = action.LengthSquared();
+
+            _aircraft[i].TargetVSpeed = Mathf.Clamp(0.5f * (_aircraft[i].GlobalPosition.Y - target.GlobalPosition.Y), -15.0f, 7.0f);
+            // _aircraft[i].TargetTurnRate = Mathf.DegToRad(Mathf.Clamp(0.5f * Mathf.RadToDeg(Mathf.AngleDifference(_aircraft[i].GlobalRotation.Y, _targets[i].GlobalRotation.Y)), -6.0f, 6.0f));
+            var headingToTarget = Mathf.Atan2(_aircraft[i].GlobalPosition.X - target.GlobalPosition.X,
+                _aircraft[i].GlobalPosition.Z - target.GlobalPosition.Z);
+            var targetTurnRate = Mathf.DegToRad(Mathf.Clamp(0.5f * Mathf.RadToDeg(Mathf.AngleDifference(_aircraft[i].GlobalRotation.Y, headingToTarget)), -8.0f, 8.0f));
+            // _aircraft[i].TargetTurnRate = Mathf.MoveToward(_aircraft[i].TargetTurnRate, targetTurnRate, 0.1f / 60.0f);
+            _aircraft[i].TargetTurnRate = targetTurnRate;
+
+            static float TrackingReward(float error, float tolerance, float power = 1.5f)
             {
-                return 1.0f - Mathf.Clamp(Mathf.Abs(error) / tolerance, 0.0f, 1.0f);
+                // return 1.0f - Mathf.Clamp(Mathf.Abs(error) / tolerance, 0.0f, 1.0f);
+                return 1.0f / (1.0f + Mathf.Pow(Mathf.Abs(error) / tolerance, power));
             }
 
             var crashed = _aircraft[i].GlobalPosition.Y <= 0.0f;
@@ -178,9 +207,14 @@ public class ArcadeEnv : IEnv
             var vSpeedErr = _aircraft[i].LinearVelocity.Y - _aircraft[i].TargetVSpeed;
             var turnRateErr = _aircraft[i].TurnRate - _aircraft[i].TargetTurnRate;
 
-            reward[i] = TrackingReward(speedErr, _speedTolerance)
-                  + TrackingReward(vSpeedErr, _vSpeedTolerance)
-                  + TrackingReward(turnRateErr, _turnRateTolerance);
+            reward[i] =
+                    0.80f * TrackingReward(speedErr, _speedTolerance)
+                  + 1.20f * TrackingReward(vSpeedErr, _vSpeedTolerance)
+                  + 2.00f * TrackingReward(turnRateErr, _turnRateTolerance)
+                  + 0.05f * TrackingReward(_aircraft[i].SideslipAngle, _sideslipTolerance)
+                  - 0.10f * controlEffortPenalty
+                  - 0.02f * actionSmoothnessPenalty
+                  - 0.02f * angularAccelPenalty;
 
             if (_aircraft[i].GlobalPosition.Y < _groundSafetyAltitude)
             {

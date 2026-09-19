@@ -19,7 +19,22 @@ public partial class CameraFollowsRigidbody : Node3D
     private float _snappiness = 0.5f;
 
     [Export]
+    public bool TrackAngle = true;
+
+    [Export]
     private float _mouseSensitivity;
+
+    public enum FollowMode
+    {
+        TargetYUp,
+        WorldYUp,
+    }
+
+    [Export]
+    private FollowMode _followMode;
+
+    [Export]
+    public float ReturnDelay = 5.0f;
 
     private Node3D _rotationOffset;
     private Vector3 _rotation;
@@ -48,13 +63,18 @@ public partial class CameraFollowsRigidbody : Node3D
         {
             Position = ToFollow.GlobalPosition;
             forward = ToFollow.LinearVelocity;
-            up = ToFollow.Basis.Column1;
+            up = _followMode switch
+            {
+                FollowMode.TargetYUp => ToFollow.GlobalBasis.Y,
+                FollowMode.WorldYUp => Vector3.Up,
+                _ => Vector3.Up,
+            };
         }
 
 
         // var up = 10.0f * (Position- WorldVars.PlanetCenter);
         _moving = forward.Length() > 2.0f;
-        if (_moving && (Position + forward).AngleTo(up) > 0.01f)
+        if (TrackAngle && _moving && (Position + forward).AngleTo(up) > 0.01f)
         {
             Transform = Transform.InterpolateWith(Transform.LookingAt(Position + forward, up), 1.0f - Mathf.Exp(-_snappiness * (float)delta));
 
@@ -66,7 +86,7 @@ public partial class CameraFollowsRigidbody : Node3D
         if (Input.IsMouseButtonPressed(MouseButton.Middle))
         {
             _rotation += -new Vector3(Input.GetLastMouseVelocity().Y, Input.GetLastMouseVelocity().X, 0.0f) / _mouseSensitivity;
-            _timer = 5.0;
+            _timer = ReturnDelay;
         }
         else if (_timer <= 0.0)
         {

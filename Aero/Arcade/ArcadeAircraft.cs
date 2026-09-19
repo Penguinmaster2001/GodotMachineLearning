@@ -15,24 +15,25 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     [Export]
     public bool TuningMode = false;
 
-    #region Tunables
     [Export]
     public ArcadeParametersResource ParametersResource;
     public WorldVars WorldVars = new();
-    #endregion
 
 
     #region Control inputs
-    public float Pitch;    // + = nose up
-    public float Roll;     // + = roll right
-    public float Yaw;      // + = yaw right
-    public float Throttle; // [0, 1]
+    public float Pitch { get; set; }    // + = nose up
+    public float Roll { get; set; }     // + = roll right
+    public float Yaw { get; set; }      // + = yaw right
+    public float Throttle { get; set; } // [0, 1]
+
+    public Vector3 PrevControls { get; set; }
     #endregion
 
 
     #region RL data
-    public Vector3 LocalVel;
-    private Vector3 _prevVel;
+    public Vector3 LocalVel { get; private set; }
+    public Vector3 PrevVel { get; private set; }
+    public Vector3 PrevAngularVel { get; private set; }
     public Vector3 Acceleration { get; set; }
     public float AoA { get; private set; }
     public float SideslipAngle { get; private set; }
@@ -102,8 +103,9 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
         float dt = (float)delta;
         Age += dt;
 
-        Acceleration = (LinearVelocity - _prevVel) / dt;
-        _prevVel = LinearVelocity;
+        Acceleration = (LinearVelocity - PrevVel) / dt;
+        PrevVel = LinearVelocity;
+        PrevAngularVel = AngularVelocity;
 
         var inverseBasis = GlobalBasis.Transposed();
         LocalVel = inverseBasis * LinearVelocity;
@@ -197,12 +199,13 @@ public partial class ArcadeAircraft : RigidBody3D, IAgent
     {
         GlobalPosition = position;
         GlobalBasis = basis;
-        LinearVelocity = linearVelocity;
-        AngularVelocity = angularVelocity;
+        LinearVelocity = basis * linearVelocity;
+        AngularVelocity = basis * angularVelocity;
         Pitch = Roll = Yaw = 0.0f;
         Throttle = 0.0f;
         Acceleration = Vector3.Zero;
-        _prevVel = Vector3.Zero;
+        PrevVel = Vector3.Zero;
+        PrevAngularVel = Vector3.Zero;
     }
 
 
