@@ -34,7 +34,7 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
-    private readonly List<ArcadeAircraft> _aircrafts = [];
+    private readonly List<ArcadeAircraftAgent> _agents = [];
     private readonly List<TargetNode> _targets = [];
 
     [Export]
@@ -84,12 +84,12 @@ public partial class TrainerBootstrap : Node
     public override void _Ready()
     {
         var (options, env) = ArcadeEnvFactory.CreateEnv(
-            _aircrafts,
+            _agents,
             _targets,
             _num,
             _start.Position,
             _end.Position,
-            () => _aircraft.Instantiate<ArcadeAircraft>(),
+            () => new(_aircraft.Instantiate<ArcadeAircraft>()),
             () => _target.Instantiate<TargetNode>(),
             () => _resultIndicator.Instantiate<ResultIndicator>(),
             n => AddChild(n));
@@ -168,11 +168,11 @@ public partial class TrainerBootstrap : Node
 
     private void SetCurrentPlane()
     {
-        CurrentPlane = Mathf.PosMod(CurrentPlane, _aircrafts.Count);
+        CurrentPlane = Mathf.PosMod(CurrentPlane, _agents.Count);
 
-        _ui.EnvAgent = _aircrafts[CurrentPlane];
+        _ui.EnvAgent = _agents[CurrentPlane];
         _ui.Target = _targets[CurrentPlane];
         _ui.AgentId = CurrentPlane;
-        _followCam.ToFollow = _aircrafts[CurrentPlane];
+        _followCam.ToFollow = _agents[CurrentPlane].Aircraft;
     }
 }

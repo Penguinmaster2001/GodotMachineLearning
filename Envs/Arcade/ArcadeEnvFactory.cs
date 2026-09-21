@@ -16,12 +16,12 @@ namespace PPO.Envs.Arcade;
 public static class ArcadeEnvFactory
 {
     public static (PpoOptions, IEnv) CreateEnv(
-        List<ArcadeAircraft> aircraft,
+        List<ArcadeAircraftAgent> agents,
         List<TargetNode> targets,
         int num,
         Vector3 start,
         Vector3 end,
-        Func<ArcadeAircraft> chaserFactory,
+        Func<ArcadeAircraftAgent> chaserFactory,
         Func<TargetNode> targetFactory,
         Func<ResultIndicator> indicatorFactory,
         Action<Node> useNode)
@@ -34,10 +34,10 @@ public static class ArcadeEnvFactory
             var color = Utils.GenerateColor(i, num);
 
             var chaser = chaserFactory();
-            chaser.SetColor(color);
-            chaser.WorldVars = worldVars;
-            aircraft.Add(chaser);
-            useNode(chaser);
+            chaser.Aircraft.SetColor(color);
+            chaser.Aircraft.WorldVars = worldVars;
+            agents.Add(chaser);
+            useNode(chaser.Aircraft);
 
             var target = targetFactory();
             target.SetColor(color);
@@ -46,11 +46,11 @@ public static class ArcadeEnvFactory
         }
 
         // var scale = 1000.0f;
-        var env = new ArcadeEnv([.. aircraft], [.. targets], (c, t) =>
+        var env = new ArcadeEnv([.. agents], [.. targets], (c, t) =>
         {
-            var success = c.GlobalPosition.DistanceTo(t.GlobalPosition) < 50.0f;
+            var success = c.Aircraft.GlobalPosition.DistanceTo(t.GlobalPosition) < 50.0f;
             var indicator = indicatorFactory();
-            indicator.Position = c.Position;
+            indicator.Position = c.Aircraft.Position;
             indicator.SetColor(success ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
             useNode(indicator);
 
@@ -76,7 +76,7 @@ public static class ArcadeEnvFactory
             c.Age = 0.0f;
             c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
-            c.TargetTurnRate = Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
             c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
             c.MaxRates = new(
                 rng.RandfRange(-20.0f, -5.0f),                  // V speed lower
@@ -90,7 +90,7 @@ public static class ArcadeEnvFactory
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
             c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
-            c.TargetTurnRate = Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
             c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
             c.MaxRates = new(
                 rng.RandfRange(-20.0f, -5.0f),
@@ -103,7 +103,7 @@ public static class ArcadeEnvFactory
 
         var options = new PpoOptions
         {
-            UseCuda = true,
+            UseCuda = false,
             NumSteps = 1024,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
@@ -113,8 +113,8 @@ public static class ArcadeEnvFactory
             UpdateEpochs = 4,
             AnnealLR = false,
             EntCoef = 0.02,
-            Gamma = 0.995,
-            HiddenLayerSizes = [32, 32]
+            Gamma = 0.997,
+            HiddenLayerSizes = [16, 16]
         };
 
         return (options, env);

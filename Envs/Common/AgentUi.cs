@@ -1,7 +1,6 @@
 
 using System.Text;
 using Godot;
-using PPO.Aero.Arcade;
 using PPO.Benchmarking;
 using PPO.Envs.Chase;
 using PPO.Ppo;
@@ -38,14 +37,12 @@ public partial class AgentUi : Control
 
     public override void _Process(double delta)
     {
-        var inputs = Env.Observe().cuda();
-        // var inputs = Env.Observe();
-        var (action, _, _, _) = Agent.GetActionAndValue(inputs);
-        var (reward, _, _) = Env.Evaluate(false);
+        var inputs = Env.PrevObservation;
+        // var (action, _, _, _) = Agent.GetActionAndValue(inputs);
+        var action = Env.PrevActuation;
 
-        reward = reward.cpu();
-        inputs = inputs.cpu();
-        action = action.cpu();
+        if (inputs is null) return;
+        if (action is null) return;
 
         var inputShape = inputs.shape;
         var inputData = inputs.data<float>();
@@ -75,8 +72,7 @@ public partial class AgentUi : Control
 
         _inputLabel.Text = $"{inputVals}";
         _outputLabel.Text = $"{actionVals}";
-        _rewardLabel.Text = $"rewd: {reward[AgentId].item<float>(),10:00.0000}";
-        _rewardLabel.Text = $"rewd: {reward[AgentId].item<float>(),10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
+        _rewardLabel.Text = $"rewd: {EnvAgent.Reward,10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
 
         _statsLabel.Text = $"{stats}";
     }

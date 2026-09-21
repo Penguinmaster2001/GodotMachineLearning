@@ -24,6 +24,8 @@ public class BallTrackEnv : IEnv
     private readonly int[] _stepCounts;
     private readonly Action<BallNode> _reset;
     public (string, float)[] RewardStats { get; private set; } = [];
+    public torch.Tensor PrevObservation { get; private set; }
+    public torch.Tensor PrevActuation { get; private set; }
 
     
     [Export]

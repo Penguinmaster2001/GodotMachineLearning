@@ -31,8 +31,8 @@ public partial class ArcadeTestEnv : Node3D
         ArcadeController.SetChannels(new Dictionary<string, int>
         {
             {"pitch", 0},
-            {"roll", 1},
-            {"yaw", 2},
+            {"yaw", 1},
+            {"roll", 2},
             {"throttle", 3},
         });
 
@@ -49,8 +49,8 @@ public partial class ArcadeTestEnv : Node3D
 
         Aircraft.SetControls(
             ArcadeController.GetChannel("pitch"),
-            ArcadeController.GetChannel("roll"),
             ArcadeController.GetChannel("yaw"),
+            ArcadeController.GetChannel("roll"),
             ArcadeController.GetChannel("throttle")
         );
 

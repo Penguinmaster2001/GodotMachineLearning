@@ -1,7 +1,6 @@
 
 using System;
 using Godot;
-using PPO.Aero.Arcade;
 using PPO.Envs.Chase;
 using PPO.Envs.Common;
 using PPO.Ppo;
@@ -74,34 +73,34 @@ public class ArcadeEnv : IEnv
     #endregion
     public long InputSize => InputLabels.Length;
 
-    public string[] OutputLabels { get; } = ["thtl", "pich", "roll", "yaww"];
+    public string[] OutputLabels { get; } = ["pich", "yaww", "roll", "thtl"];
     public long OutputSize => OutputLabels.Length;
 
-    public int NumEnvs => _aircraft.Length;
+    public int NumEnvs => _agents.Length;
 
     public (string, float)[] RewardStats { get; private set; } = [];
     private readonly Utils.RewardBuilder _rewardBuilder = new(["spdE", "vSpE", "DhdE", "beta", "bank", "ctEf", "acSm", "angA", "linA"]);
+    public torch.Tensor PrevObservation { get; private set; }
+    public torch.Tensor PrevActuation { get; private set; }
 
-    private readonly ArcadeAircraft[] _aircraft;
+    private readonly ArcadeAircraftAgent[] _agents;
     private readonly TargetNode[] _targets;
     private readonly int[] _stepCounts;
-    private readonly Action<ArcadeAircraft, TargetNode> _reset;
-    private readonly Action<ArcadeAircraft, TargetNode> _resetTarget;
+    private readonly Action<ArcadeAircraftAgent, TargetNode> _reset;
+    private readonly Action<ArcadeAircraftAgent, TargetNode> _resetTarget;
 
 
-    private int _maxSteps = 8192;
-
-    public float TargetAltTolerance = 25.0f;
+    private const int _maxSteps = 8192;
 
 
 
     public ArcadeEnv(
-        ArcadeAircraft[] aircraft,
+        ArcadeAircraftAgent[] aircraft,
         TargetNode[] targets,
-        Action<ArcadeAircraft, TargetNode> reset,
-        Action<ArcadeAircraft, TargetNode> resetTarget)
+        Action<ArcadeAircraftAgent, TargetNode> reset,
+        Action<ArcadeAircraftAgent, TargetNode> resetTarget)
     {
-        _aircraft = aircraft;
+        _agents = aircraft;
         _targets = targets;
         _reset = reset;
         _resetTarget = resetTarget;
@@ -131,21 +130,24 @@ public class ArcadeEnv : IEnv
         {
             FillObsRow(obs, i);
         }
-        return torch.tensor(obs);
+        var obsTensor = torch.tensor(obs);
+        PrevObservation = obsTensor.cpu();
+        return obsTensor;
     }
 
 
 
     public void Actuate(torch.Tensor action)
     {
+        PrevActuation = action.cpu();
         for (int i = 0; i < NumEnvs; i++)
         {
-            _aircraft[i].PrevControls = new Vector3(_aircraft[i].Pitch, _aircraft[i].Yaw, _aircraft[i].Roll);
-            _aircraft[i].SetControls(
+            var agent = _agents[i];
+            agent.SetControls(
+                Mathf.Tanh(action[i, 0].item<float>()),
                 Mathf.Tanh(action[i, 1].item<float>()),
                 Mathf.Tanh(action[i, 2].item<float>()),
-                Mathf.Tanh(action[i, 3].item<float>()),
-                _aircraft[i].Throttle + (0.5f * action[i, 0].item<float>())
+                agent.Aircraft.Throttle + Mathf.Tanh(action[i, 3].item<float>())
             );
         }
     }
@@ -165,43 +167,46 @@ public class ArcadeEnv : IEnv
                 _stepCounts[i]++;
             }
 
-            var aircraft = _aircraft[i];
+            var agent = _agents[i];
+            var aircraft = agent.Aircraft;
+            var target = _targets[i];
+
+            agent.Age += aircraft.DeltaTime;
+            aircraft.DeltaTime = 0.0f;
 
             // if (_stepCounts[i] % 1024 == 0)
             // {
             //     _resetTarget(_aircraft[i], _targets[i]);
             // }
 
-            var target = _targets[i];
-            // var target = _aircraft[(i + 1) % _aircraft.Length];
+            // target = _aircraft[(i + 1) % _aircraft.Length];
 
             const float _speedTolerance = 15.0f;
             const float _vSpeedTolerance = 5.0f;
-            float _turnRateTolerance = 0.4f * aircraft.MaxRates.Z;
+            float _turnRateTolerance = 0.4f * agent.MaxRates.Z;
             const float _groundSafetyAltitude = 50.0f;
             const float _groundProximityPenalty = 2.0f;
             const float _crashPenalty = 500.0f;
             const float _sideslipTolerance = 0.03f;
-            float aggressionMult = 1.0f - aircraft.Aggressiveness;
-            var aggressionTolerance = 1.0f + (0.8f * aircraft.Aggressiveness);
+            float aggressionMult = 1.0f - agent.Aggressiveness;
+            var aggressionTolerance = 1.0f + (0.8f * agent.Aggressiveness);
 
-            var action = new Vector3(aircraft.Pitch, aircraft.Yaw, aircraft.Roll);
-            var actionDelta = action - aircraft.PrevControls;
+            var actionDelta = agent.Action - agent.PrevControls;
             var actionSmoothnessPenalty = aggressionMult * actionDelta.Length();
 
             var angularAccelPenalty = aggressionMult * aircraft.AngularAcceleration.LengthSquared() * 0.1f / Mathf.Pi;
             var linearAccelPenalty = aggressionMult * aircraft.Acceleration.LengthSquared() * 0.01f;
-            var controlEffortPenalty = aggressionMult * action.LengthSquared();
+            var controlEffortPenalty = aggressionMult * agent.Action.LengthSquared();
             var bankAngleIncentive = aggressionMult * TrackingReward(Mathf.Abs(Mathf.Atan2(aircraft.GlobalBasis.Y.X, aircraft.GlobalBasis.Y.Y)), aggressionTolerance * 0.25f);
             // var throttlePenalty = aggressionMult * TrackingReward(0.4f - aircraft.Throttle, 0.6f * aggressionTolerance, 4.0f);
 
-            aircraft.TargetVSpeed = Mathf.Clamp((target.GlobalPosition.Y - aircraft.GlobalPosition.Y) / 25.0f, aircraft.MaxRates.X, aircraft.MaxRates.Y);
+            agent.TargetVSpeed = Mathf.Clamp((target.GlobalPosition.Y - aircraft.GlobalPosition.Y) / 25.0f, agent.MaxRates.X, agent.MaxRates.Y);
 
             var toTarget = target.GlobalPosition - aircraft.GlobalPosition;
             var headingToTarget = Mathf.Atan2(toTarget.X, -toTarget.Z);
             // var headingToTarget = target.GlobalRotation.Y;
             var headingError = Mathf.AngleDifference(aircraft.Heading, headingToTarget);
-            var targetTurnRate = Mathf.Clamp(headingError * 0.15f, -aircraft.MaxRates.Z, aircraft.MaxRates.Z);
+            var targetTurnRate = Mathf.Clamp(headingError * 0.15f, -agent.MaxRates.Z, agent.MaxRates.Z);
             // var targetTurnRate = 0.0f;
             // aircraft.TargetTurnRate = Mathf.MoveToward(aircraft.TargetTurnRate, targetTurnRate, Mathf.DegToRad(30.0f) / 10.0f);
             // aircraft.TargetTurnRate = targetTurnRate;
@@ -218,17 +223,17 @@ public class ArcadeEnv : IEnv
             bool timedOut = _stepCounts[i] >= _maxSteps;
             truncated[i] = timedOut && !crashed;
 
-            var speed = -aircraft.LocalVel.Z;
-            var speedErr = speed - aircraft.TargetSpeed;
-            var vSpeedErr = aircraft.LinearVelocity.Y - aircraft.TargetVSpeed;
-            var turnRateErr = aircraft.TurnRate - aircraft.TargetTurnRate;
+            var speed = -aircraft.LocalVelocity.Z;
+            var speedErr = speed - agent.TargetSpeed;
+            var vSpeedErr = aircraft.LinearVelocity.Y - agent.TargetVSpeed;
+            var turnRateErr = aircraft.TurnRate - agent.TargetTurnRate;
 
             reward[i] = _rewardBuilder.SumRewards(
                   +1.00f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
                   +1.50f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
                   +3.00f * TrackingReward(turnRateErr, aggressionTolerance * _turnRateTolerance),
                   +0.08f * 1.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
-                  +0.10f * 1.0f * bankAngleIncentive,
+                  +0.10f * 0.0f * bankAngleIncentive,
                   -0.10f * 1.0f * controlEffortPenalty,
                   -0.10f * 1.0f * actionSmoothnessPenalty,
                   -0.15f * 1.0f * angularAccelPenalty,
@@ -245,12 +250,12 @@ public class ArcadeEnv : IEnv
                 reward[i] -= _crashPenalty;
             }
 
-            aircraft.Reward = reward[i];
+            agent.Reward = reward[i];
 
             if (aircraft.GlobalPosition.DistanceTo(target.GlobalPosition) < 200.0f)
             {
-                aircraft.HitStreak += 1;
-                _resetTarget(aircraft, target);
+                agent.HitStreak += 1;
+                _resetTarget(agent, target);
             }
         }
 
@@ -263,7 +268,7 @@ public class ArcadeEnv : IEnv
 
     public void ResetEnv(int i)
     {
-        _reset(_aircraft[i], _targets[i]);
+        _reset(_agents[i], _targets[i]);
         _stepCounts[i] = 0;
     }
 
@@ -278,17 +283,18 @@ public class ArcadeEnv : IEnv
     private void FillObsRow(float[,] obs, int aircraftId)
     {
         var filler = new Utils.ObsRowFiller(aircraftId, obs, Normalizations);
-        var aircraft = _aircraft[aircraftId];
+        var agent = _agents[aircraftId];
+        var aircraft = agent.Aircraft;
         var inverseBasis = aircraft.GlobalBasis.Transposed();
 
         // "gndA",                                 // Altitude above ground
         filler.Add(aircraft.GlobalPosition.Y);
 
         // "aSpd", "vSpd",                         // Airspeed, vertical speed
-        filler.Add(aircraft.Speed, aircraft.LinearVelocity.Y);
+        filler.Add(aircraft.AirSpeed, aircraft.LinearVelocity.Y);
 
         // "loVx", "loVy", "loVz",                 // Local velocities
-        filler.Add(aircraft.LocalVel);
+        filler.Add(aircraft.LocalVelocity);
 
         // "loAx", "loAy", "loAz",                 // Local accelerations
         filler.Add(inverseBasis * aircraft.Acceleration);
@@ -318,7 +324,7 @@ public class ArcadeEnv : IEnv
 
         // "dens", "mach",                         // Air density and mach number
         filler.Add(aircraft.WorldVars.AirDensity(aircraft.GlobalPosition),
-            aircraft.Speed / aircraft.WorldVars.SpeedOfSound(aircraft.GlobalPosition));
+            aircraft.AirSpeed / aircraft.WorldVars.SpeedOfSound(aircraft.GlobalPosition));
 
         // "Cpch", "Cyaw", "Crol",                 // Current attitude controls
         filler.Add(aircraft.Pitch, aircraft.Yaw, aircraft.Roll);
@@ -330,12 +336,12 @@ public class ArcadeEnv : IEnv
         filler.Add(aircraft.Throttle, aircraft.Engine.Thrust / aircraft.Engine.Parameters.MaxThrust);
 
         // "spdE", "vSdE", "DHdE"                  // Target speed, v speed, and turn rate errors
-        filler.Add(aircraft.TargetSpeed - aircraft.Speed,
-            aircraft.TargetVSpeed - aircraft.LinearVelocity.Y,
-            Mathf.AngleDifference(aircraft.TargetTurnRate, aircraft.TurnRate));
+        filler.Add(agent.TargetSpeed - aircraft.AirSpeed,
+            agent.TargetVSpeed - aircraft.LinearVelocity.Y,
+            Mathf.AngleDifference(agent.TargetTurnRate, aircraft.TurnRate));
 
         // "aggr"                                  // Aggressiveness
-        filler.Add(aircraft.Aggressiveness);
+        filler.Add(agent.Aggressiveness);
 
         if (filler.Count != InputSize)
         {
