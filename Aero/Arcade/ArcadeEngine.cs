@@ -42,4 +42,11 @@ public class ArcadeEngine
 
         Thrust = EngineSpool * Parameters.MaxThrust * Density * Parameters.MachThrust(airspeed / worldVars.SpeedOfSound(globalPosition));
     }
+
+
+
+    public void Reset()
+    {
+        EngineSpool = 0.0f;
+    }
 }

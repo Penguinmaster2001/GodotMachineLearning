@@ -14,8 +14,8 @@ public static class Utils
     public static Color GenerateColor(int i, int num)
     {
         var angle = i % Mathf.Tau;
-        var radius = Mathf.Sqrt(0.1f + (i * 0.8f / num));
-        var height = 0.1f + 0.8f * ((100.0f * i / num) % 1.0f);
+        var radius = Mathf.Sqrt(0.25f + (i * 0.5f / num));
+        var height = 0.35f + 0.65f * ((100.0f * i / num) % 1.0f);
 
         var hue = angle / Mathf.Tau;
         var lightness = radius;
@@ -156,6 +156,63 @@ public static class Utils
             {
                 Add(arr[i]);
             }
+        }
+    }
+
+
+
+    public class RewardBuilder
+    {
+        private readonly string[] _names;
+        private readonly float[] _stats;
+        private int _count = 0;
+
+
+
+        public RewardBuilder(string[] names)
+        {
+            _names = names;
+            _stats = new float[names.Length];
+        }
+
+
+
+        public float SumRewards(params float[] rewards)
+        {
+            var sum = 0.0f;
+            for (int i = 0; i < rewards.Length; i++)
+            {
+                sum += rewards[i];
+                _stats[i] += rewards[i];
+            }
+
+            _count++;
+
+            return sum;
+        }
+
+
+
+        public (string, float)[] GetAverage(bool resetTurn = false)
+        {
+            var namedStats = new (string, float)[_names.Length];
+
+            for (int i = 0; i < _stats.Length; i++)
+            {
+                namedStats[i] = (_names[i], _stats[i] / _count);
+
+                if (resetTurn)
+                {
+                    _stats[i] = 0.0f;
+                }
+            }
+
+            if (resetTurn)
+            {
+                _count = 0;
+            }
+
+            return namedStats;
         }
     }
 }

@@ -1,6 +1,7 @@
 
 using System.Text;
 using Godot;
+using PPO.Aero.Arcade;
 using PPO.Benchmarking;
 using PPO.Envs.Chase;
 using PPO.Ppo;
@@ -37,8 +38,8 @@ public partial class AgentUi : Control
 
     public override void _Process(double delta)
     {
-        // var inputs = Env.Observe().cuda();
-        var inputs = Env.Observe();
+        var inputs = Env.Observe().cuda();
+        // var inputs = Env.Observe();
         var (action, _, _, _) = Agent.GetActionAndValue(inputs);
         var (reward, _, _) = Env.Evaluate(false);
 
@@ -67,11 +68,16 @@ public partial class AgentUi : Control
         {
             stats.AppendLine($"{stat.Key}: {stat.Value.val,10:00.0000} {stat.Value.ave,10:00.0000}");
         }
+        foreach (var rewardStat in Env.RewardStats)
+        {
+            stats.AppendLine($"{rewardStat.Item1}: {rewardStat.Item2,10:00.0000}");
+        }
 
         _inputLabel.Text = $"{inputVals}";
         _outputLabel.Text = $"{actionVals}";
         _rewardLabel.Text = $"rewd: {reward[AgentId].item<float>(),10:00.0000}";
         _rewardLabel.Text = $"rewd: {reward[AgentId].item<float>(),10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
+
         _statsLabel.Text = $"{stats}";
     }
 }

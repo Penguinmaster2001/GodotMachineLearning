@@ -71,10 +71,15 @@ public partial class CameraFollowsRigidbody : Node3D
             };
         }
 
+        if (!TrackAngle)
+        {
+            forward = GlobalBasis.Z;
+        }
+
 
         // var up = 10.0f * (Position- WorldVars.PlanetCenter);
         _moving = forward.Length() > 2.0f;
-        if (TrackAngle && _moving && (Position + forward).AngleTo(up) > 0.01f)
+        if (_moving && (Position + forward).AngleTo(up) > 0.01f)
         {
             Transform = Transform.InterpolateWith(Transform.LookingAt(Position + forward, up), 1.0f - Mathf.Exp(-_snappiness * (float)delta));
 

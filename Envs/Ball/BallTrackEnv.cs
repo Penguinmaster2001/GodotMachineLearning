@@ -23,6 +23,7 @@ public class BallTrackEnv : IEnv
     private readonly Vector3[] _startPositions;
     private readonly int[] _stepCounts;
     private readonly Action<BallNode> _reset;
+    public (string, float)[] RewardStats { get; private set; } = [];
 
     
     [Export]

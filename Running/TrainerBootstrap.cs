@@ -34,8 +34,8 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
-    private List<ArcadeAircraft> _aircrafts = [];
-    private List<TargetNode> _targets = [];
+    private readonly List<ArcadeAircraft> _aircrafts = [];
+    private readonly List<TargetNode> _targets = [];
 
     [Export]
     private AgentUi _ui;

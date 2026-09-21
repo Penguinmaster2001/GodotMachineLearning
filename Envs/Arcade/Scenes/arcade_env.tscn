@@ -57,15 +57,15 @@ script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 256
+_num = 512
 _start = NodePath("Start")
 _end = NodePath("End")
 _ui = NodePath("AgentUi")
 Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
 _updateFramePeriod = 6
-_loadCheckpointName = "arcade_small"
-CheckpointName = "arcade_small"
+_loadCheckpointName = "arcade"
+CheckpointName = "arcade"
 _loadFromCheckpoint = true
 _saveCheckpoints = true
 
@@ -93,10 +93,9 @@ far = 30000.0
 
 [node name="CameraFollowsRigidbody" parent="." unique_id=594315423 instance=ExtResource("5_8qel6")]
 _followOffset = Vector3(0, 0, 15)
-_snappiness = 100.0
-TrackAngle = false
-_mouseSensitivity = 20000.0
+_snappiness = 10.0
 _followMode = 1
+ReturnDelay = 10.0
 
 [node name="AgentUi" parent="." unique_id=797787089 instance=ExtResource("6_um50m")]
 

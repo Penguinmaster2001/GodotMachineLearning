@@ -27,6 +27,7 @@ public static class ArcadeEnvFactory
         Action<Node> useNode)
     {
         var rng = new RandomNumberGenerator();
+        var worldVars = new WorldVars();
 
         for (int i = 0; i < num; i++)
         {
@@ -34,6 +35,7 @@ public static class ArcadeEnvFactory
 
             var chaser = chaserFactory();
             chaser.SetColor(color);
+            chaser.WorldVars = worldVars;
             aircraft.Add(chaser);
             useNode(chaser);
 
@@ -52,32 +54,49 @@ public static class ArcadeEnvFactory
             indicator.SetColor(success ? Color.FromOkHsl(0.33f, 1.0f, 0.5f) : Color.FromOkHsl(0.0f, 1.0f, 0.5f));
             useNode(indicator);
 
-            if (success)
-            {
-                c.HitStreak++;
-            }
-            else
-            {
-                c.HitStreak = 0;
-            }
+            c.HitStreak = 0;
 
-            c.ResetTo(Utils.RandVector3(rng, start, end), Basis.FromEuler(new(0.0f, rng.RandfRange(-Mathf.Pi, Mathf.Pi), 0.0f)), 100.0f * Vector3.Forward);
+            // if (success)
+            // {
+            //     c.HitStreak++;
+            // }
+            // else
+            // {
+            //     c.HitStreak = 0;
+            // }
+
+            c.ResetTo(Utils.RandVector3(rng, start, end), Basis.FromEuler(new(0.0f, rng.RandfRange(-Mathf.Pi, Mathf.Pi), Mathf.DegToRad(rng.RandfRange(-20.0f, 20.0f)))), 100.0f * Vector3.Forward);
             t.GlobalPosition = Utils.RandVector3(rng, start, end);
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
             // t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
 
             // c.LinearVelocity = 30.0f * Utils.RandVector3(rng);
             // c.AngularVelocity = 5.0f * Utils.RandVector3(rng);
-            // c.Rotation = Mathf.Tau * Utils.RandVector3(rng);
+            // c.Rotation = Mathf.DegToRad(rng.RandfRange(-20.0f, 20.0f)) * Vector3.Forward;
             c.Age = 0.0f;
             c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
-            c.TargetTurnRate = 0.0f;
+            c.TargetTurnRate = Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
+            c.MaxRates = new(
+                rng.RandfRange(-20.0f, -5.0f),                  // V speed lower
+                rng.RandfRange(2.0f, 8.0f),                     // V speed upper
+                Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f)),     // Turn rate
+                0.0f);
         },
         (c, t) =>
         {
             t.GlobalPosition = Utils.RandVector3(rng, start, end);
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
+            c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
+            c.TargetVSpeed = 0.0f;
+            c.TargetTurnRate = Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
+            c.MaxRates = new(
+                rng.RandfRange(-20.0f, -5.0f),
+                rng.RandfRange(2.0f, 15.0f),
+                Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f)),
+                0.0f);
         });
 
         env.Reset();
@@ -85,16 +104,17 @@ public static class ArcadeEnvFactory
         var options = new PpoOptions
         {
             UseCuda = true,
-            NumSteps = 512,
+            NumSteps = 1024,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
             TotalTimesteps = 32_000_000,
-            BatchSize = 512 * env.NumEnvs,
+            BatchSize = 1024 * env.NumEnvs,
             MinibatchSize = 8196,
             UpdateEpochs = 4,
             AnnealLR = false,
-            EntCoef = 0.001,
-            HiddenLayerSizes = [16, 16]
+            EntCoef = 0.02,
+            Gamma = 0.995,
+            HiddenLayerSizes = [32, 32]
         };
 
         return (options, env);

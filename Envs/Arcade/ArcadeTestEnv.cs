@@ -36,6 +36,7 @@ public partial class ArcadeTestEnv : Node3D
             {"throttle", 3},
         });
 
+        Aircraft.WorldVars = new();
         Hud.InputNames = Aircraft.InputNames;
         Hud.InputData = Aircraft.GetObservation;
     }

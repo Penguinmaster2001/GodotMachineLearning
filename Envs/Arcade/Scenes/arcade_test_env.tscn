@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://twkihgo1y6hy" path="res://Envs/Arcade/ArcadeTestEnv.cs" id="1_2roxt"]
 [ext_resource type="Sky" uid="uid://dj0vb5v3vcoar" path="res://Assets/Vfx/sky.tres" id="2_h0lvr"]
+[ext_resource type="PackedScene" uid="uid://d3sd8tqfwhncg" path="res://Envs/Chase/Scenes/chase_target.tscn" id="2_jgsu7"]
 [ext_resource type="Script" uid="uid://pqbi1626ra36" path="res://Aero/Arcade/ArcadeController.cs" id="3_4pwle"]
 [ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="4_j6jvm"]
 [ext_resource type="ArrayMesh" uid="uid://dvt1rx5nv2xy8" path="res://Assets/Models/terrain.obj" id="4_ka701"]
@@ -39,6 +40,9 @@ Aircraft = NodePath("LargeDrone")
 ArcadeController = NodePath("PlayerController")
 Hud = NodePath("Hud")
 Tagger = NodePath("Tagger")
+
+[node name="ChaseTarget" parent="." unique_id=1581189932 instance=ExtResource("2_jgsu7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 500, -5000)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=878329285]
 environment = SubResource("Environment_a5ajg")
