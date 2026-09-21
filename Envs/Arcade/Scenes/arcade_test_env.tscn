@@ -40,6 +40,8 @@ Aircraft = NodePath("LargeDrone")
 ArcadeController = NodePath("PlayerController")
 Hud = NodePath("Hud")
 Tagger = NodePath("Tagger")
+_recordStates = true
+_recordFrequency = 0.5
 
 [node name="ChaseTarget" parent="." unique_id=1581189932 instance=ExtResource("2_jgsu7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 500, -5000)

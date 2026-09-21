@@ -90,7 +90,8 @@ public class ArcadeEnv : IEnv
     private readonly Action<ArcadeAircraftAgent, TargetNode> _resetTarget;
 
 
-    private const int _maxSteps = 8192;
+    private const int _maxSteps = 128;
+    // private const int _maxSteps = 8192;
 
 
 

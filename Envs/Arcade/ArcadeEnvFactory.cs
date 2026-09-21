@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using Godot;
-using PPO.Aero.Arcade;
 using PPO.Envs.Chase;
 using PPO.Envs.Common;
 using PPO.Ppo;
@@ -28,6 +27,8 @@ public static class ArcadeEnvFactory
     {
         var rng = new RandomNumberGenerator();
         var worldVars = new WorldVars();
+        var initialStates = InitialStateManager.InitialStateContainer.Load(
+            ProjectSettings.GlobalizePath("res://Data/initial_states.json"));
 
         for (int i = 0; i < num; i++)
         {
@@ -64,8 +65,10 @@ public static class ArcadeEnvFactory
             // {
             //     c.HitStreak = 0;
             // }
-
-            c.ResetTo(Utils.RandVector3(rng, start, end), Basis.FromEuler(new(0.0f, rng.RandfRange(-Mathf.Pi, Mathf.Pi), Mathf.DegToRad(rng.RandfRange(-20.0f, 20.0f)))), 100.0f * Vector3.Forward);
+            var state = initialStates.Sample();
+            var orientation = Basis.FromEuler(new(state.RotationXZ.X, rng.RandfRange(-Mathf.Pi, Mathf.Pi), state.RotationXZ.Y));
+            c.ResetTo(Utils.RandVector3(rng, start, end), orientation, state.LocalVelocity, state.LocalAngularVelocity);
+            c.Aircraft.Throttle = 1.0f;
             t.GlobalPosition = Utils.RandVector3(rng, start, end);
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
             // t.GlobalPosition = (c.GlobalPosition + (8.0f * scale * Vector3.Forward) + Utils.RandVector3(rng, -scale, scale)).Clamp(start, end);
