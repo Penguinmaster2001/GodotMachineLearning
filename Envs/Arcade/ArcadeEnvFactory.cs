@@ -67,7 +67,7 @@ public static class ArcadeEnvFactory
             // }
             var state = initialStates.Sample();
             var orientation = Basis.FromEuler(new(state.RotationXZ.X, rng.RandfRange(-Mathf.Pi, Mathf.Pi), state.RotationXZ.Y));
-            c.ResetTo(Utils.RandVector3(rng, start, end), orientation, state.LocalVelocity, state.LocalAngularVelocity);
+            c.ResetTo(Utils.RandVector3(rng, start, end), orientation, new(state.LocalVelocity.X, state.LocalVelocity.Y, -rng.RandfRange(50.0f, 120.0f)), state.LocalAngularVelocity);
             c.Aircraft.Throttle = 1.0f;
             t.GlobalPosition = Utils.RandVector3(rng, start, end);
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
@@ -106,7 +106,7 @@ public static class ArcadeEnvFactory
 
         var options = new PpoOptions
         {
-            UseCuda = false,
+            UseCuda = true,
             NumSteps = 1024,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
@@ -117,7 +117,7 @@ public static class ArcadeEnvFactory
             AnnealLR = false,
             EntCoef = 0.02,
             Gamma = 0.997,
-            HiddenLayerSizes = [16, 16]
+            HiddenLayerSizes = [64, 64]
         };
 
         return (options, env);
