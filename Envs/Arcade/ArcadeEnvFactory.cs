@@ -79,12 +79,12 @@ public static class ArcadeEnvFactory
             c.Age = 0.0f;
             c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
-            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 15.0f));
             c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
             c.MaxRates = new(
-                rng.RandfRange(-20.0f, -5.0f),                  // V speed lower
-                rng.RandfRange(2.0f, 8.0f),                     // V speed upper
-                Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f)),     // Turn rate
+                rng.RandfRange(-40.0f, -5.0f),                  // V speed lower
+                rng.RandfRange(2.0f, 15.0f),                     // V speed upper
+                Mathf.DegToRad(rng.RandfRange(2.0f, 15.0f)),     // Turn rate
                 0.0f);
         },
         (c, t) =>
@@ -93,12 +93,12 @@ public static class ArcadeEnvFactory
             t.GlobalRotation = rng.RandfRange(-Mathf.Pi, Mathf.Pi) * Vector3.Up;
             c.TargetSpeed = rng.RandfRange(65.0f, 75.0f);
             c.TargetVSpeed = 0.0f;
-            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f));
+            c.TargetTurnRate = Mathf.Sign(rng.RandfRange(-1.0f, 1.0f)) * Mathf.DegToRad(rng.RandfRange(2.0f, 15.0f));
             c.Aggressiveness = rng.RandfRange(0.0f, 1.0f);
             c.MaxRates = new(
-                rng.RandfRange(-20.0f, -5.0f),
+                rng.RandfRange(-40.0f, -5.0f),
                 rng.RandfRange(2.0f, 15.0f),
-                Mathf.DegToRad(rng.RandfRange(2.0f, 5.0f)),
+                Mathf.DegToRad(rng.RandfRange(2.0f, 15.0f)),
                 0.0f);
         });
 
@@ -118,7 +118,7 @@ public static class ArcadeEnvFactory
             ClipVLoss = false,
             EntCoef = 0.005,
             Gamma = 0.997,
-            HiddenLayerSizes = [16, 16, 16]
+            HiddenLayerSizes = [32, 32, 32]
         };
 
         return (options, env);
