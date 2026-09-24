@@ -32,4 +32,8 @@ public class PpoOptions
 
     // null = disabled
     public double? TargetKl = null;
+
+    // CAPS
+    public double CapsTemporalCoef = 0.005;
+    public double CapsSpatialCoef = 0.005;
 }

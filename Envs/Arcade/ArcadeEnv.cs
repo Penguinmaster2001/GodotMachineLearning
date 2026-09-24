@@ -39,7 +39,7 @@ public class ArcadeEnv : IEnv
     private const float _verticalSpeedScale = 20.0f;   // vertical speed and speed-tracking error (vSpd, spdE)
     private const float _accelerationScale = 20.0f;    // local accelerations (loAx/y/z)
     private const float _pitchRange = Mathf.Pi / 2.0f; // pitch attitude
-    private const float _angularRateScale = 3.0f;      // angular velocities (Dpch, Dyaw, Drol)
+    private const float _angularRateScale = 0.3f;      // angular velocities (Dpch, Dyaw, Drol)
     private const float _angleOfAttackScale = 0.35f;   // alpha, sized to normal pre-stall AoA band
     private const float _sideslipScale = 0.20f;        // beta
     private const float _flightPathAngleScale = 0.35f; // gamma
@@ -151,6 +151,12 @@ public class ArcadeEnv : IEnv
                 Mathf.Tanh(action[i, 2].item<float>()),
                 agent.Aircraft.Throttle + Mathf.Tanh(action[i, 3].item<float>())
             );
+            // agent.SetControls(
+            //     agent.Action.X + 0.1f * Mathf.Tanh(action[i, 0].item<float>()),
+            //     agent.Action.Y + 0.1f * Mathf.Tanh(action[i, 1].item<float>()),
+            //     agent.Action.Z + 0.1f * Mathf.Tanh(action[i, 2].item<float>()),
+            //     agent.Aircraft.Throttle + Mathf.Tanh(action[i, 3].item<float>())
+            // );
         }
     }
 
@@ -185,20 +191,21 @@ public class ArcadeEnv : IEnv
 
             const float _speedTolerance = 15.0f;
             const float _vSpeedTolerance = 5.0f;
-            float _turnRateTolerance = 0.4f * agent.MaxRates.Z;
+            // float _turnRateTolerance = 0.2f * agent.MaxRates.Z;
+            float _turnRateTolerance = 0.2f * Mathf.DegToRad(4.0f);
             const float _groundSafetyAltitude = 50.0f;
             const float _groundProximityPenalty = 2.0f;
-            const float _crashPenalty = 500.0f;
+            const float _crashPenalty = 40.0f;
             const float _sideslipTolerance = 0.03f;
             float aggressionMult = 1.0f - agent.Aggressiveness;
-            var aggressionTolerance = 1.0f + (0.8f * agent.Aggressiveness);
+            var aggressionTolerance = 1.0f + (0.8f * aggressionMult);
 
             var actionDelta = agent.Action - agent.PrevControls;
             var actionSmoothnessPenalty = aggressionMult * actionDelta.Length();
 
             var angularAccelPenalty = aggressionMult * aircraft.AngularAcceleration.LengthSquared() * 0.1f / Mathf.Pi;
-            var linearAccelPenalty = aggressionMult * aircraft.Acceleration.LengthSquared() * 0.01f;
-            var controlEffortPenalty = aggressionMult * agent.Action.LengthSquared();
+            var linearAccelPenalty = aggressionMult * (new Vector3(2.0f, 0.5f, 0.5f) * aircraft.GlobalBasis.Transposed() * aircraft.Acceleration).LengthSquared() * 0.01f;
+            var controlEffortPenalty = aggressionMult * (new Vector3(2.0f, 0.5f, 0.5f) * agent.Action).Length();
             var bankAngleIncentive = aggressionMult * TrackingReward(Mathf.Abs(Mathf.Atan2(aircraft.GlobalBasis.Y.X, aircraft.GlobalBasis.Y.Y)), aggressionTolerance * 0.25f);
             // var throttlePenalty = aggressionMult * TrackingReward(0.4f - aircraft.Throttle, 0.6f * aggressionTolerance, 4.0f);
 
@@ -210,8 +217,8 @@ public class ArcadeEnv : IEnv
             var headingError = Mathf.AngleDifference(aircraft.Heading, headingToTarget);
             var targetTurnRate = Mathf.Clamp(headingError * 0.15f, -agent.MaxRates.Z, agent.MaxRates.Z);
             // var targetTurnRate = 0.0f;
-            // aircraft.TargetTurnRate = Mathf.MoveToward(aircraft.TargetTurnRate, targetTurnRate, Mathf.DegToRad(30.0f) / 10.0f);
-            // aircraft.TargetTurnRate = targetTurnRate;
+            // agent.TargetTurnRate = Mathf.MoveToward(agent.TargetTurnRate, targetTurnRate, Mathf.DegToRad(30.0f) / 10.0f);
+            // agent.TargetTurnRate = targetTurnRate;
 
             static float TrackingReward(float error, float tolerance, float power = 1.5f)
             {
@@ -231,15 +238,15 @@ public class ArcadeEnv : IEnv
             var turnRateErr = aircraft.TurnRate - agent.TargetTurnRate;
 
             reward[i] = _rewardBuilder.SumRewards(
-                  +1.00f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
-                  +1.50f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
-                  +3.00f * TrackingReward(turnRateErr, aggressionTolerance * _turnRateTolerance),
-                  +0.08f * 1.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
+                  +1.00f * 0.3f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
+                  +1.50f * 0.3f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
+                  +3.00f * 1.0f * TrackingReward(turnRateErr, aggressionTolerance * _turnRateTolerance),
+                  +0.08f * 0.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
                   +0.10f * 0.0f * bankAngleIncentive,
-                  -0.10f * 1.0f * controlEffortPenalty,
-                  -0.10f * 1.0f * actionSmoothnessPenalty,
-                  -0.15f * 1.0f * angularAccelPenalty,
-                  -0.10f * 1.0f * linearAccelPenalty
+                  -0.10f * 0.0f * controlEffortPenalty,
+                  -0.10f * 0.0f * actionSmoothnessPenalty,
+                  -0.15f * 0.0f * angularAccelPenalty,
+                  -0.10f * 0.0f * linearAccelPenalty
             );
 
             if (aircraft.GlobalPosition.Y < _groundSafetyAltitude)

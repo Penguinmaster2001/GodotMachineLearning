@@ -187,7 +187,7 @@ public class PpoTrainer
             {
                 _completedReturns.Add(_episodeReturnAccum[i]);
                 _episodeReturnAccum[i] = 0f;
-                
+
                 if (reward[i].item<float>() > 0.0f)
                 {
                     _successCount++;
@@ -249,6 +249,18 @@ public class PpoTrainer
         var bInds = Enumerable.Range(0, args.BatchSize).ToArray();
         torch.Tensor approxKl = null, pgLoss = null, vLoss = null, entropyLoss = null;
 
+        // CAPS
+        // Next-observation view, reusing the existing rollout buffer.
+        var nextObsFull = torch.cat([_obs[1..], _currentObs.unsqueeze(0)], dim: 0);
+        var bNextObs = nextObsFull.reshape(-1, _env.InputSize);
+
+        // A transition (s_t -> s_{t+1}) is invalid if an episode reset happened
+        // in between — i.e., if the observation stored at t+1 is a fresh reset,
+        // not a continuation. That's exactly what _dones[t+1] (or _currentDone
+        // for the last step) already records.
+        var doneAtNext = torch.cat([_dones[1..], _currentDone.unsqueeze(0)], dim: 0);
+        var bValidTransition = (1.0f - doneAtNext).reshape(-1);
+
         for (int epoch = 0; epoch < args.UpdateEpochs; epoch++)
         {
             using var epochTimer = ScopedTimer.Start($"epoch {epoch}");
@@ -298,7 +310,29 @@ public class PpoTrainer
                 }
 
                 entropyLoss = entropy.mean();
-                var loss = pgLoss - args.EntCoef * entropyLoss + vLoss * args.VfCoef;
+
+                // CAPS
+                var mbNextObs = bNextObs.index_select(0, mbInds);
+                var mbValid = bValidTransition.index_select(0, mbInds);
+
+                var meanCurrent = Agent.GetMeanAction(mbObs);
+                var meanNext = Agent.GetMeanAction(mbNextObs);
+                var temporalDiff = (meanCurrent - meanNext).pow(2).sum(dim: -1);
+                var temporalLoss = (temporalDiff * mbValid).sum() / mbValid.sum().clamp_min(1);
+
+                var spatialSigma = 0.05f;
+                var perturbedObs = mbObs + torch.randn_like(mbObs) * spatialSigma;
+                var meanPerturbed = Agent.GetMeanAction(perturbedObs);
+                var spatialLoss = (meanCurrent - meanPerturbed).pow(2).sum(dim: -1).mean();
+
+                // Loss
+                var loss = pgLoss
+                         - args.EntCoef * entropyLoss
+                         + args.VfCoef * vLoss
+                         + args.CapsTemporalCoef * temporalLoss
+                         + args.CapsSpatialCoef * spatialLoss;
+
+                // var loss = pgLoss - args.EntCoef * entropyLoss + vLoss * args.VfCoef;
 
                 _optimizer.zero_grad();
                 loss.backward();
@@ -342,6 +376,12 @@ public class PpoTrainer
         _stats.Add("ave_reward", aveStepReward);
         _stats.Add("success_rate", successRate);
         _stats.Add("episodes", _completedReturns.Count);
+        _stats.Add("entropy", entropyLoss?.item<float>() ?? 0.0f);
+        var logstd = Agent.LogStd.exp();
+        for (int i = 0; i < logstd.shape[0]; i++)
+        {
+            _stats.Add($"logstd_{_env.OutputLabels[i]}", logstd[i]?.item<float>() ?? 0.0f);
+        }
 
         _completedReturns.Clear();
         _successCount = 0;
@@ -383,6 +423,10 @@ public class PpoTrainer
     public void ResetCount()
     {
         _updateIndex = 0;
-        Agent.LogStd = torch.nn.Parameter(torch.zeros(_env.OutputSize));
+        // Agent.LogStd = torch.nn.Parameter(torch.zeros(_env.OutputSize));
+        using (torch.no_grad())
+        {
+            Agent.LogStd.zero_();
+        }
     }
 }

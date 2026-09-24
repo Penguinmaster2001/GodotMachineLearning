@@ -110,14 +110,15 @@ public static class ArcadeEnvFactory
             NumSteps = 1024,
             NumEnvs = env.NumEnvs,
             LearningRate = 3e-4,
-            TotalTimesteps = 32_000_000,
+            TotalTimesteps = 64_000_000,
             BatchSize = 1024 * env.NumEnvs,
             MinibatchSize = 8196,
             UpdateEpochs = 4,
             AnnealLR = false,
-            EntCoef = 0.02,
+            ClipVLoss = false,
+            EntCoef = 0.005,
             Gamma = 0.997,
-            HiddenLayerSizes = [64, 64]
+            HiddenLayerSizes = [16, 16, 16]
         };
 
         return (options, env);

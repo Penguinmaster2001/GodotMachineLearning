@@ -33,7 +33,8 @@ public class Agent : nn.Module
     public Agent ToDevice(DeviceType device)
     {
         this.to(device);
-        LogStd = nn.Parameter(LogStd.to(device));
+        // LogStd = nn.Parameter(LogStd.to(device));
+        // RegisterComponents();
 
         return this;
     }
@@ -59,10 +60,11 @@ public class Agent : nn.Module
 
 
 
-    public torch.Tensor GetValue(torch.Tensor x)
-    {
-        return Critic.call(x);
-    }
+    public torch.Tensor GetValue(torch.Tensor x) =>  Critic.call(x);
+
+
+
+    public torch.Tensor GetMeanAction(torch.Tensor x) => Actor.call(x);
 
 
 
@@ -70,8 +72,8 @@ public class Agent : nn.Module
     public (torch.Tensor action, torch.Tensor logProb, torch.Tensor entropy, torch.Tensor value) GetActionAndValue(torch.Tensor x, torch.Tensor? action = null)
     {
         var mean = Actor.call(x);                       // shape [batch, OutputSize]
-        // var std = LogStd.exp().expand_as(mean);         // broadcast to match batch
-        var std = LogStd.cuda().exp().expand_as(mean);         // broadcast to match batch
+        var std = LogStd.exp().expand_as(mean);         // broadcast to match batch
+        // var std = LogStd.cuda().exp().expand_as(mean);         // broadcast to match batch
 
         var probs = new Normal(mean, std);
 

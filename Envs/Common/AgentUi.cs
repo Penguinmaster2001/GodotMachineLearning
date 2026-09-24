@@ -38,7 +38,6 @@ public partial class AgentUi : Control
     public override void _Process(double delta)
     {
         var inputs = Env.PrevObservation;
-        // var (action, _, _, _) = Agent.GetActionAndValue(inputs);
         var action = Env.PrevActuation;
 
         if (inputs is null) return;
