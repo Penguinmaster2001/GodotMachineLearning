@@ -29,6 +29,7 @@ public class PpoOptions
     public double EntCoef = 0.0;
     public double VfCoef = 0.5;
     public double MaxGradNorm = 0.5;
+    public double MaxCriticGradNorm = 50.0;
 
     // null = disabled
     public double? TargetKl = null;

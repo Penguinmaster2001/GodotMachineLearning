@@ -171,7 +171,7 @@ public class ArcadeEnv : IEnv
 
             var agent = _agents[i];
             var aircraft = agent.Aircraft;
-            var target = _targets[i];
+            var target = _targets[i] as Node3D;
 
             agent.Age += aircraft.DeltaTime;
             aircraft.DeltaTime = 0.0f;
@@ -181,16 +181,16 @@ public class ArcadeEnv : IEnv
                 _resetTarget(_agents[i], _targets[i]);
             }
 
-            // target = _aircraft[(i + 1) % _aircraft.Length];
+            target = _agents[(i + 1) % _agents.Length].Aircraft;
 
-            const float _speedTolerance = 15.0f;
-            const float _vSpeedTolerance = 5.0f;
-            // float _turnRateTolerance = 0.2f * agent.MaxRates.Z;
-            float _turnRateTolerance = 0.2f * Mathf.DegToRad(4.0f);
+            const float _speedTolerance = 5.0f;
+            const float _vSpeedTolerance = 2.0f;
+            float _turnRateTolerance = 0.1f * agent.MaxRates.Z;
+            // float _turnRateTolerance = 0.1f * Mathf.DegToRad(4.0f);
             const float _groundSafetyAltitude = 50.0f;
             const float _groundProximityPenalty = 2.0f;
             const float _crashPenalty = 40.0f;
-            const float _sideslipTolerance = 0.03f;
+            float _sideslipTolerance = Mathf.DegToRad(5.0f);
             float aggressionMult = 1.0f - agent.Aggressiveness;
             var aggressionTolerance = 1.0f + (0.8f * aggressionMult);
 
@@ -198,8 +198,8 @@ public class ArcadeEnv : IEnv
             var actionSmoothnessPenalty = aggressionMult * actionDelta.LengthSquared();
 
             var angularAccelPenalty = aggressionMult * aircraft.AngularAcceleration.LengthSquared() * 0.1f / Mathf.Pi;
-            var linearAccelPenalty = aggressionMult * (new Vector3(2.0f, 0.5f, 0.5f) * aircraft.GlobalBasis.Transposed() * aircraft.Acceleration).LengthSquared() * 0.01f;
-            var controlEffortPenalty = aggressionMult * (new Vector3(2.0f, 0.5f, 0.5f) * agent.Action).Length();
+            var linearAccelPenalty = aggressionMult * (new Vector3(2.0f, 1.0f, 1.0f) * aircraft.GlobalBasis.Transposed() * aircraft.Acceleration).LengthSquared() * 0.01f;
+            var controlEffortPenalty = aggressionMult * (new Vector3(2.0f, 1.0f, 1.0f) * agent.Action).Length();
             var bankAngleIncentive = aggressionMult * TrackingReward(Mathf.Abs(Mathf.Atan2(aircraft.GlobalBasis.Y.X, aircraft.GlobalBasis.Y.Y)), aggressionTolerance * 0.25f);
             // var throttlePenalty = aggressionMult * TrackingReward(0.4f - aircraft.Throttle, 0.6f * aggressionTolerance, 4.0f);
 
@@ -208,10 +208,10 @@ public class ArcadeEnv : IEnv
             var toTarget = target.GlobalPosition - aircraft.GlobalPosition;
             var headingToTarget = Mathf.Atan2(toTarget.X, -toTarget.Z);
             // var headingToTarget = target.GlobalRotation.Y;
-            var headingError = Mathf.AngleDifference(aircraft.Heading, headingToTarget);
-            var targetTurnRate = Mathf.Clamp(headingError * 1.15f, -agent.MaxRates.Z, agent.MaxRates.Z);
+            var headingError = Mathf.AngleDifference(headingToTarget, aircraft.Heading);
+            var targetTurnRate = Mathf.Clamp(headingError * 0.5f, -agent.MaxRates.Z, agent.MaxRates.Z);
 
-            if (Mathf.RadToDeg(headingError) > 120.0f)
+            if (Mathf.Abs(Mathf.RadToDeg(headingError)) > 120.0f)
             {
                 targetTurnRate = Mathf.Sign(agent.TargetTurnRate) * agent.MaxRates.Z;
             }
@@ -237,15 +237,15 @@ public class ArcadeEnv : IEnv
             var turnRateErr = aircraft.TurnRate - agent.TargetTurnRate;
 
             reward[i] = _rewardBuilder.SumRewards(
-                  +1.00f * 0.5f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
-                  +1.50f * 0.5f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
+                  +1.00f * 1.0f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
+                  +1.50f * 1.0f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
                   +3.00f * 1.0f * TrackingReward(turnRateErr, aggressionTolerance * _turnRateTolerance),
-                  +0.08f * 1.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
+                  +0.25f * 1.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
                   +0.10f * 0.0f * bankAngleIncentive,
                   -0.10f * 1.0f * controlEffortPenalty,
-                  -0.20f * 1.0f * actionSmoothnessPenalty,
-                  -0.15f * 1.0f * angularAccelPenalty,
-                  -0.10f * 1.0f * linearAccelPenalty
+                  -0.30f * 1.0f * actionSmoothnessPenalty,
+                  -0.25f * 1.0f * angularAccelPenalty,
+                  -0.20f * 1.0f * linearAccelPenalty
             );
 
             if (aircraft.GlobalPosition.Y < _groundSafetyAltitude)
@@ -263,7 +263,7 @@ public class ArcadeEnv : IEnv
             if (aircraft.GlobalPosition.DistanceTo(target.GlobalPosition) < 200.0f)
             {
                 agent.HitStreak += 1;
-                _resetTarget(agent, target);
+                _resetTarget(agent, _targets[i]);
             }
         }
 

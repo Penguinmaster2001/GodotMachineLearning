@@ -247,7 +247,7 @@ public class PpoTrainer
         var bValues = _values.reshape(-1);
 
         var bInds = Enumerable.Range(0, args.BatchSize).ToArray();
-        torch.Tensor approxKl = null, pgLoss = null, vLoss = null, entropyLoss = null;
+        torch.Tensor approxKl = null, pgLoss = null, vLoss = null, entropyLoss = null, temporalLoss = null, spatialLoss = null;
 
         // CAPS
         // Next-observation view, reusing the existing rollout buffer.
@@ -318,12 +318,12 @@ public class PpoTrainer
                 var meanCurrent = Agent.GetMeanAction(mbObs);
                 var meanNext = Agent.GetMeanAction(mbNextObs);
                 var temporalDiff = (meanCurrent - meanNext).pow(2).sum(dim: -1);
-                var temporalLoss = (temporalDiff * mbValid).sum() / mbValid.sum().clamp_min(1);
+                temporalLoss = (temporalDiff * mbValid).sum() / mbValid.sum().clamp_min(1);
 
                 var spatialSigma = 0.05f;
                 var perturbedObs = mbObs + torch.randn_like(mbObs) * spatialSigma;
                 var meanPerturbed = Agent.GetMeanAction(perturbedObs);
-                var spatialLoss = (meanCurrent - meanPerturbed).pow(2).sum(dim: -1).mean();
+                spatialLoss = (meanCurrent - meanPerturbed).pow(2).sum(dim: -1).mean();
 
                 // Loss
                 var loss = pgLoss
@@ -336,7 +336,9 @@ public class PpoTrainer
 
                 _optimizer.zero_grad();
                 loss.backward();
-                torch.nn.utils.clip_grad_norm_(Agent.parameters(), args.MaxGradNorm);
+                // torch.nn.utils.clip_grad_norm_(Agent.parameters(), args.MaxGradNorm);
+                torch.nn.utils.clip_grad_norm_(Agent.Actor.parameters().Concat([Agent.LogStd]), args.MaxGradNorm);
+                torch.nn.utils.clip_grad_norm_(Agent.Critic.parameters(), args.MaxCriticGradNorm);
                 _optimizer.step();
             }
 
@@ -369,10 +371,12 @@ public class PpoTrainer
         _stats.Add("update", _updateIndex);
         _stats.Add("global_step", _globalStep);
         _stats.Add("sps", sps);
+        _stats.Add("temporal_loss", temporalLoss?.item<float>() ?? 0.0f);
+        _stats.Add("spatial_loss", spatialLoss?.item<float>() ?? 0.0f);
         _stats.Add("pg_loss", pgLoss?.item<float>() ?? 0.0f);
         _stats.Add("v_loss", vLoss?.item<float>() ?? 0.0f);
-        _stats.Add("approx_kl", approxKl?.item<float>() ?? 0.0f);
         _stats.Add("explained_variance", explainedVar);
+        _stats.Add("approx_kl", approxKl?.item<float>() ?? 0.0f);
         _stats.Add("ave_reward", aveStepReward);
         _stats.Add("success_rate", successRate);
         _stats.Add("episodes", _completedReturns.Count);

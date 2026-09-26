@@ -57,24 +57,24 @@ script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 512
+_num = 128
 _start = NodePath("Start")
 _end = NodePath("End")
 _ui = NodePath("AgentUi")
 Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
 _updateFramePeriod = 6
-_loadCheckpointName = "arcade_deep"
-CheckpointName = "arcade_deep"
+_loadCheckpointName = "arcade_deep_small"
+CheckpointName = "arcade_deep_small"
 _loadFromCheckpoint = true
 _saveCheckpoints = true
 
 [node name="Start" type="MeshInstance3D" parent="." unique_id=440840876]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -9000, 200, -9000)
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -9000, 10, -9000)
 mesh = SubResource("SphereMesh_a5ajg")
 
 [node name="End" type="MeshInstance3D" parent="." unique_id=2034012286]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 9000, 5000, 9000)
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 9000, 10000, 9000)
 mesh = SubResource("SphereMesh_nslsp")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
