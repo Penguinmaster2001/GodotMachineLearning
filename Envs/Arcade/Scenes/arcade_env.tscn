@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://dl1wffq85s6uj" path="res://Scenes/Ui/camera_follows_rigidbody.tscn" id="5_8qel6"]
 [ext_resource type="PackedScene" uid="uid://bjrvshgs0hhyl" path="res://Scenes/Ui/agent_ui.tscn" id="6_um50m"]
 [ext_resource type="Script" uid="uid://cl3s8xbndio28" path="res://Running/SimClock.cs" id="7_88gwi"]
+[ext_resource type="ArrayMesh" uid="uid://dvt1rx5nv2xy8" path="res://Assets/Models/terrain.obj" id="9_o8o12"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gla0r"]
 shading_mode = 0
@@ -36,49 +37,44 @@ ambient_light_color = Color(1, 1, 1, 1)
 reflected_light_source = 1
 tonemap_mode = 4
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_uuukt"]
-size = Vector2(10000, 10000)
+[sub_resource type="Gradient" id="Gradient_8xyc8"]
+colors = PackedColorArray(0.44, 0.37488, 0.3344, 1, 0.7560274, 0.8252233, 0.8380748, 1)
 
-[sub_resource type="Gradient" id="Gradient_o8o12"]
-colors = PackedColorArray(0.26875925, 0.2533922, 0.11841985, 1, 0.71824336, 0.86, 0.6622, 1)
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_kp634"]
-noise_type = 4
-fractal_octaves = 8
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_2stmt"]
 
 [sub_resource type="NoiseTexture2D" id="NoiseTexture2D_7bw1u"]
-width = 4096
-height = 4096
-noise = SubResource("FastNoiseLite_kp634")
-color_ramp = SubResource("Gradient_o8o12")
+width = 2048
+height = 2048
+noise = SubResource("FastNoiseLite_2stmt")
+color_ramp = SubResource("Gradient_8xyc8")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c4eui"]
-albedo_color = Color(0.37855995, 0.56, 0.25759998, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o8o12"]
+albedo_color = Color(0.48644936, 0.6197521, 0.30399022, 1)
 albedo_texture = SubResource("NoiseTexture2D_7bw1u")
 
-[node name="ArcadeEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end", "_ui", "_followCam", "_observeCam")]
+[node name="ArcadeEnv" type="Node3D" unique_id=493165968 node_paths=PackedStringArray("_start", "_end", "_ui", "Cameras", "_followCam")]
 script = ExtResource("1_resl7")
 _aircraft = ExtResource("2_uuukt")
 _target = ExtResource("3_nl4wg")
 _resultIndicator = ExtResource("4_kshfu")
-_num = 256
-_start = NodePath("First")
-_end = NodePath("Second")
+_num = 128
+_start = NodePath("Start")
+_end = NodePath("End")
 _ui = NodePath("AgentUi")
+Cameras = [NodePath("WatchCam"), NodePath("CameraFollowsRigidbody")]
 _followCam = NodePath("CameraFollowsRigidbody")
-_observeCam = NodePath("WatchCam")
-_updateFramePeriod = 20
-_loadCheckpointName = "arcade_tgt_alt"
-CheckpointName = "arcade_tgt_alt"
+_updateFramePeriod = 6
+_loadCheckpointName = "arcade_deep_small"
+CheckpointName = "arcade_deep_small"
 _loadFromCheckpoint = true
 _saveCheckpoints = true
 
-[node name="First" type="MeshInstance3D" parent="." unique_id=440840876]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -50, 200, -30)
+[node name="Start" type="MeshInstance3D" parent="." unique_id=440840876]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, -9000, 10, -9000)
 mesh = SubResource("SphereMesh_a5ajg")
 
-[node name="Second" type="MeshInstance3D" parent="." unique_id=2034012286]
-transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 50, 1000, 30)
+[node name="End" type="MeshInstance3D" parent="." unique_id=2034012286]
+transform = Transform3D(25, 0, 0, 0, 25, 0, 0, 0, 25, 9000, 10000, 9000)
 mesh = SubResource("SphereMesh_nslsp")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=628197624]
@@ -88,21 +84,27 @@ transform = Transform3D(0.9189263, 0.124524325, 0.37425688, -0.39442942, 0.29011
 environment = SubResource("Environment_a5ajg")
 
 [node name="WatchCam" type="Camera3D" parent="." unique_id=1863966396]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -125, 0, 0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, -12000, 5000, 0)
+keep_aspect = 0
 projection = 1
-size = 60.0
+size = 20000.0
+near = 10.0
+far = 30000.0
 
 [node name="CameraFollowsRigidbody" parent="." unique_id=594315423 instance=ExtResource("5_8qel6")]
 _followOffset = Vector3(0, 0, 15)
-_mouseSensitivity = 100000.0
+_snappiness = 10.0
+_followMode = 1
+ReturnDelay = 10.0
 
 [node name="AgentUi" parent="." unique_id=797787089 instance=ExtResource("6_um50m")]
 
 [node name="Retimer" type="Node" parent="." unique_id=1439623693]
 script = ExtResource("7_88gwi")
-MaxFps = 15.0
+MaxFps = 20.0
 Enabled = true
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=803138517]
-mesh = SubResource("PlaneMesh_uuukt")
-surface_material_override/0 = SubResource("StandardMaterial3D_c4eui")
+transform = Transform3D(10000, 0, 0, 0, 3000, 0, 0, 0, 10000, 0, 0, 0)
+mesh = ExtResource("9_o8o12")
+surface_material_override/0 = SubResource("StandardMaterial3D_o8o12")

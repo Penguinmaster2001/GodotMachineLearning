@@ -1,7 +1,6 @@
 
 using System;
 using Godot;
-using PPO.Aero.Arcade;
 using PPO.Envs.Chase;
 using PPO.Envs.Common;
 using PPO.Ppo;
@@ -16,42 +15,97 @@ namespace PPO.Envs.Arcade;
 public class ArcadeEnv : IEnv
 {
     public string[] InputLabels { get; } = [
-        "velX", "velY", "velZ",
-        "accX", "accY", "accZ",
-        "Dpch", "Dyaw", "Drol",
-        "gupX", "gupY", "gupZ",
-        "fwdX", "fwdY", "fwdZ",
-        "alfa",
-        "pich", "roll", "yaww",
-        "thtl", "thst",
-        "gndA",
-
-        "altE", "ptcE", "rolE", "hedE", "spdE",
+        "gndA",                                 // Altitude above ground
+        "aSpd", "vSpd",                         // Airspeed, vertical speed
+        "loVx", "loVy", "loVz",                 // Local velocities
+        "loAx", "loAy", "loAz",                 // Local accelerations
+        "pich", "sYaw", "cYaw",                 // Attitude, pitch (sin, cos) for yaw
+        "sRol", "cRol", "sHed", "cHed",         // Attitude, (sin, cos) for roll and heading
+        "gupX", "gupY", "gupZ",                 // Up vector
+        "fwdX", "fwdY", "fwdZ",                 // Forward vector
+        "Dpch", "Dyaw", "Drol", "Dhed",         // Angular velocity, turn rate
+        "Apch", "Ayaw", "Arol",                 // Angular acceleration
+        "alfa", "beta", "gama",                 // Angle of attack, sideslip angle, and flight path angle
+        "dens", "mach",                         // Air density and mach number
+        "Cpch", "Cyaw", "Crol",                 // Current attitude controls
+        "Spch", "Syaw", "Srol",                 // Current control surface states
+        "thtl", "thst",                         // Throttle and thrust state
+        "spdE", "vSdE", "DHdE",                 // Target v speed, speed, and turn rate errors
+        "aggr"                                  // Aggressiveness
     ];
+
+    #region Normalization
+    private const float _speedScale = 60.0f;           // airspeed / local velocity components (aSpd, loVx/y/z)
+    private const float _verticalSpeedScale = 20.0f;   // vertical speed and speed-tracking error (vSpd, spdE)
+    private const float _accelerationScale = 20.0f;    // local accelerations (loAx/y/z)
+    private const float _pitchRange = Mathf.Pi / 2.0f; // pitch attitude
+    private const float _angularRateScale = 0.3f;      // angular velocities (Dpch, Dyaw, Drol)
+    private const float _angleOfAttackScale = 0.35f;   // alpha, sized to normal pre-stall AoA band
+    private const float _sideslipScale = 0.20f;        // beta
+    private const float _flightPathAngleScale = 0.35f; // gamma
+    private const float _groundAltitudeScale = 500.0f; // gndA
+
+    public Func<float, float>[] Normalizations { get; } = new Utils.NormalizationBuilder()
+        .Add(NormalizationFunctions.DivideTanh(_groundAltitudeScale))    // gndA
+        .Add(NormalizationFunctions.DivideTanh(_speedScale))             // aSpd
+        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // vSpd
+        .Add(NormalizationFunctions.DivideTanh(_speedScale), 3)          // loV
+        .Add(NormalizationFunctions.DivideTanh(_accelerationScale), 3)   // loA
+        .Add(NormalizationFunctions.Divide(_pitchRange))                 // pich
+        .Add(NormalizationFunctions.Identity, 6)                         // sYaw, cYaw, sHed, cHed, sRol, cRol
+        .Add(NormalizationFunctions.Identity, 3)                         // gup
+        .Add(NormalizationFunctions.Identity, 3)                         // fwd
+        .Add(NormalizationFunctions.DivideTanh(_angularRateScale), 4)    // Datt
+        .Add(NormalizationFunctions.DivideTanh(_angularRateScale), 3)    // Aatt
+        .Add(NormalizationFunctions.DivideTanh(_angleOfAttackScale))     // alfa
+        .Add(NormalizationFunctions.DivideTanh(_sideslipScale))          // beta
+        .Add(NormalizationFunctions.DivideTanh(_flightPathAngleScale))   // gama
+        .Add(NormalizationFunctions.DivideTanh(2.0f))                    // pres
+        .Add(NormalizationFunctions.DivideTanh(2.0f))                    // mach
+        .Add(NormalizationFunctions.Identity, 3)                         // ctrl (C)
+        .Add(NormalizationFunctions.Identity, 3)                         // ctrl (S)
+        .Add(NormalizationFunctions.Identity, 2)                         // thtl, thst
+        .Add(NormalizationFunctions.DivideTanh(_speedScale))             // spdE
+        .Add(NormalizationFunctions.DivideTanh(_verticalSpeedScale))     // vSdE
+        .Add(NormalizationFunctions.DivideTanh(_angularRateScale))       // DHdE
+        .Add(NormalizationFunctions.Identity)                            // aggr
+        .Build();
+    #endregion
     public long InputSize => InputLabels.Length;
 
-    public string[] OutputLabels { get; } = ["thtl", "pich", "roll", "yaww"];
+    public string[] OutputLabels { get; } = ["pich", "yaww", "roll", "thtl"];
     public long OutputSize => OutputLabels.Length;
 
-    public int NumEnvs => _aircraft.Length;
+    public int NumEnvs => _agents.Length;
 
-    private readonly ArcadeAircraft[] _aircraft;
+    public (string, float)[] RewardStats { get; private set; } = [];
+    private readonly Utils.RewardBuilder _rewardBuilder = new(["spdE", "vSpE", "DhdE", "beta", "bank", "ctEf", "acSm", "angA", "linA"]);
+    public torch.Tensor PrevObservation { get; private set; }
+    public torch.Tensor PrevActuation { get; private set; }
+
+    private readonly ArcadeAircraftAgent[] _agents;
     private readonly TargetNode[] _targets;
     private readonly int[] _stepCounts;
-    private readonly Action<ArcadeAircraft, TargetNode> _reset;
+    private readonly Action<ArcadeAircraftAgent, TargetNode> _reset;
+    private readonly Action<ArcadeAircraftAgent, TargetNode> _resetTarget;
 
 
-    private int _maxSteps = 256;
+    // private const int _maxSteps = 128;
+    // private const int _maxSteps = 1024;
+    private const int _maxSteps = 8192;
 
-    public float TargetAltTolerance = 50.0f;
 
 
-
-    public ArcadeEnv(ArcadeAircraft[] aircraft, TargetNode[] targets, Action<ArcadeAircraft, TargetNode> reset)
+    public ArcadeEnv(
+        ArcadeAircraftAgent[] aircraft,
+        TargetNode[] targets,
+        Action<ArcadeAircraftAgent, TargetNode> reset,
+        Action<ArcadeAircraftAgent, TargetNode> resetTarget)
     {
-        _aircraft = aircraft;
+        _agents = aircraft;
         _targets = targets;
         _reset = reset;
+        _resetTarget = resetTarget;
 
         _stepCounts = new int[aircraft.Length];
     }
@@ -78,16 +132,25 @@ public class ArcadeEnv : IEnv
         {
             FillObsRow(obs, i);
         }
-        return torch.tensor(obs);
+        var obsTensor = torch.tensor(obs);
+        PrevObservation = obsTensor.cpu();
+        return obsTensor;
     }
 
 
 
     public void Actuate(torch.Tensor action)
     {
+        PrevActuation = action.cpu();
         for (int i = 0; i < NumEnvs; i++)
         {
-            _aircraft[i].SetControls(action[i, 1].item<float>(), action[i, 2].item<float>(), action[i, 3].item<float>(), action[i, 0].item<float>());
+            var agent = _agents[i];
+            agent.SetControls(
+                Mathf.Tanh(action[i, 0].item<float>()),
+                Mathf.Tanh(action[i, 1].item<float>()),
+                Mathf.Tanh(action[i, 2].item<float>()),
+                2.0f * Mathf.Tanh(action[i, 3].item<float>())
+            );
         }
     }
 
@@ -106,34 +169,105 @@ public class ArcadeEnv : IEnv
                 _stepCounts[i]++;
             }
 
-            var crashed = _aircraft[i].GlobalPosition.Y <= 0.0f;
+            var agent = _agents[i];
+            var aircraft = agent.Aircraft;
+            var target = _targets[i] as Node3D;
+
+            agent.Age += aircraft.DeltaTime;
+            aircraft.DeltaTime = 0.0f;
+
+            if (_stepCounts[i] % 2048 == 0)
+            {
+                _resetTarget(_agents[i], _targets[i]);
+            }
+
+            target = _agents[(i + 1) % _agents.Length].Aircraft;
+
+            const float _speedTolerance = 5.0f;
+            const float _vSpeedTolerance = 2.0f;
+            float _turnRateTolerance = 0.1f * agent.MaxRates.Z;
+            // float _turnRateTolerance = 0.1f * Mathf.DegToRad(4.0f);
+            const float _groundSafetyAltitude = 50.0f;
+            const float _groundProximityPenalty = 2.0f;
+            const float _crashPenalty = 40.0f;
+            float _sideslipTolerance = Mathf.DegToRad(5.0f);
+            float aggressionMult = 1.0f - agent.Aggressiveness;
+            var aggressionTolerance = 1.0f + (0.8f * aggressionMult);
+
+            var actionDelta = agent.Action - agent.PrevControls;
+            var actionSmoothnessPenalty = aggressionMult * actionDelta.LengthSquared();
+
+            var angularAccelPenalty = aggressionMult * aircraft.AngularAcceleration.LengthSquared() * 0.1f / Mathf.Pi;
+            var linearAccelPenalty = aggressionMult * (new Vector3(2.0f, 1.0f, 1.0f) * aircraft.GlobalBasis.Transposed() * aircraft.Acceleration).LengthSquared() * 0.01f;
+            var controlEffortPenalty = aggressionMult * (new Vector3(2.0f, 1.0f, 1.0f) * agent.Action).Length();
+            var bankAngleIncentive = aggressionMult * TrackingReward(Mathf.Abs(Mathf.Atan2(aircraft.GlobalBasis.Y.X, aircraft.GlobalBasis.Y.Y)), aggressionTolerance * 0.25f);
+            // var throttlePenalty = aggressionMult * TrackingReward(0.4f - aircraft.Throttle, 0.6f * aggressionTolerance, 4.0f);
+
+            agent.TargetVSpeed = Mathf.Clamp((target.GlobalPosition.Y - aircraft.GlobalPosition.Y) / 25.0f, agent.MaxRates.X, agent.MaxRates.Y);
+
+            var toTarget = target.GlobalPosition - aircraft.GlobalPosition;
+            var headingToTarget = Mathf.Atan2(toTarget.X, -toTarget.Z);
+            // var headingToTarget = target.GlobalRotation.Y;
+            var headingError = Mathf.AngleDifference(headingToTarget, aircraft.Heading);
+            var targetTurnRate = Mathf.Clamp(headingError * 0.5f, -agent.MaxRates.Z, agent.MaxRates.Z);
+
+            if (Mathf.Abs(Mathf.RadToDeg(headingError)) > 120.0f)
+            {
+                targetTurnRate = Mathf.Sign(agent.TargetTurnRate) * agent.MaxRates.Z;
+            }
+            // var targetTurnRate = 0.0f;
+            agent.TargetTurnRate = Mathf.MoveToward(agent.TargetTurnRate, targetTurnRate, Mathf.DegToRad(10.0f) / 10.0f);
+            // agent.TargetTurnRate = targetTurnRate;
+
+            static float TrackingReward(float error, float tolerance, float power = 1.5f)
+            {
+                // return 1.0f - Mathf.Clamp(Mathf.Abs(error) / tolerance, 0.0f, 1.0f);
+                return 1.0f / (1.0f + Mathf.Pow(Mathf.Abs(error) / tolerance, power));
+            }
+
+            var crashed = aircraft.GlobalPosition.Y <= 0.0f;
             terminated[i] = crashed;
 
             bool timedOut = _stepCounts[i] >= _maxSteps;
             truncated[i] = timedOut && !crashed;
 
+            var speed = -aircraft.LocalVelocity.Z;
+            var speedErr = speed - agent.TargetSpeed;
+            var vSpeedErr = aircraft.LinearVelocity.Y - agent.TargetVSpeed;
+            var turnRateErr = aircraft.TurnRate - agent.TargetTurnRate;
 
-            var speedIncentive = Mathf.Clamp(-_aircraft[i].LocalVel.Z / 100.0f, 0.0f, 3.0f);
-            var altIncentive = Mathf.Clamp(_aircraft[i].GlobalPosition.Y / _targets[i].GlobalPosition.Y, 0.0f, 1.0f);
-            reward[i] = altIncentive + speedIncentive;
+            reward[i] = _rewardBuilder.SumRewards(
+                  +1.00f * 1.0f * TrackingReward(speedErr, aggressionTolerance * _speedTolerance),
+                  +1.50f * 1.0f * TrackingReward(vSpeedErr, aggressionTolerance * _vSpeedTolerance),
+                  +3.00f * 1.0f * TrackingReward(turnRateErr, aggressionTolerance * _turnRateTolerance),
+                  +0.25f * 1.0f * TrackingReward(aircraft.SideslipAngle, aggressionTolerance * _sideslipTolerance),
+                  +0.10f * 0.0f * bankAngleIncentive,
+                  -0.10f * 1.0f * controlEffortPenalty,
+                  -0.30f * 1.0f * actionSmoothnessPenalty,
+                  -0.25f * 1.0f * angularAccelPenalty,
+                  -0.20f * 1.0f * linearAccelPenalty
+            );
 
-            if (_aircraft[i].LocalVel.Z < -50.0f)
+            if (aircraft.GlobalPosition.Y < _groundSafetyAltitude)
             {
-                reward[i] += 10.0f;
-            }
-
-            if (Mathf.Abs(_aircraft[i].GlobalPosition.Y - _targets[i].GlobalPosition.Y) < TargetAltTolerance)
-            {
-                reward[i] += 10.0f;
+                reward[i] -= _groundProximityPenalty;
             }
 
             if (crashed)
             {
-                reward[i] -= 20.0f;
+                reward[i] -= _crashPenalty;
             }
 
-            _aircraft[i].Reward = reward[i];
+            agent.Reward = reward[i];
+
+            if (aircraft.GlobalPosition.DistanceTo(target.GlobalPosition) < 200.0f)
+            {
+                agent.HitStreak += 1;
+                _resetTarget(agent, _targets[i]);
+            }
         }
+
+        RewardStats = _rewardBuilder.GetAverage(true);
 
         return (torch.tensor(reward), torch.tensor(terminated), torch.tensor(truncated));
     }
@@ -142,7 +276,7 @@ public class ArcadeEnv : IEnv
 
     public void ResetEnv(int i)
     {
-        _reset(_aircraft[i], _targets[i]);
+        _reset(_agents[i], _targets[i]);
         _stepCounts[i] = 0;
     }
 
@@ -154,17 +288,68 @@ public class ArcadeEnv : IEnv
 
 
 
-    private void FillObsRow(float[,] obs, int aircraft)
+    private void FillObsRow(float[,] obs, int aircraftId)
     {
-        var filler = new Utils.ObsRowFiller(aircraft, obs);
-        filler.Array(_aircraft[aircraft].GetObservation());
+        var filler = new Utils.ObsRowFiller(aircraftId, obs, Normalizations);
+        var agent = _agents[aircraftId];
+        var aircraft = agent.Aircraft;
+        var inverseBasis = aircraft.GlobalBasis.Transposed();
 
-        filler.Float(_aircraft[aircraft].GlobalPosition.Y);
-        filler.Float(_targets[aircraft].GlobalPosition.Y - _aircraft[aircraft].GlobalPosition.Y);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.X);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.Z);
-        filler.Float(-_aircraft[aircraft].GlobalRotation.Y);
-        filler.Float(-100.0f - (_aircraft[aircraft].GlobalBasis.Transposed() * _aircraft[aircraft].LinearVelocity).Z);
+        // "gndA",                                 // Altitude above ground
+        filler.Add(aircraft.GlobalPosition.Y);
+
+        // "aSpd", "vSpd",                         // Airspeed, vertical speed
+        filler.Add(aircraft.AirSpeed, aircraft.LinearVelocity.Y);
+
+        // "loVx", "loVy", "loVz",                 // Local velocities
+        filler.Add(aircraft.LocalVelocity);
+
+        // "loAx", "loAy", "loAz",                 // Local accelerations
+        filler.Add(inverseBasis * aircraft.Acceleration);
+
+        // "pich", "sYaw", "cYaw",                 // Attitude, pitch (sin, cos) for yaw
+        filler.Add(aircraft.GlobalRotation.X);
+        filler.Add(Mathf.SinCos(aircraft.GlobalRotation.Y));
+        // "sRol", "cRol", "sHed", "cHed",         // Attitude, (sin, cos) for roll and heading
+        filler.Add(Mathf.SinCos(aircraft.GlobalRotation.Z));
+        filler.Add(Mathf.SinCos(aircraft.Heading));
+
+        // "gupX", "gupY", "gupZ",                 // Up vector
+        filler.Add(aircraft.GlobalBasis.Y);
+
+        // "fwdX", "fwdY", "fwdZ",                 // Forward vector
+        filler.Add(-aircraft.GlobalBasis.Z);
+
+        // "Dpch", "Dyaw", "Drol", "Dhed",         // Angular velocity, turn rate
+        filler.Add(inverseBasis * aircraft.AngularVelocity);
+        filler.Add(aircraft.TurnRate);
+
+        // "Apch", "Ayaw", "Arol",                 // Angular acceleration
+        filler.Add(inverseBasis * aircraft.AngularAcceleration);
+
+        // "alfa", "beta", "gama",                 // Angle of attack, sideslip angle, and flight path angle
+        filler.Add(aircraft.AoA, aircraft.SideslipAngle, aircraft.FlightPathAngle);
+
+        // "dens", "mach",                         // Air density and mach number
+        filler.Add(aircraft.WorldVars.AirDensity(aircraft.GlobalPosition),
+            aircraft.AirSpeed / aircraft.WorldVars.SpeedOfSound(aircraft.GlobalPosition));
+
+        // "Cpch", "Cyaw", "Crol",                 // Current attitude controls
+        filler.Add(aircraft.Pitch, aircraft.Yaw, aircraft.Roll);
+
+        // "Spch", "Syaw", "Srol",                 // Current control surface states
+        filler.Add(aircraft.ControlSurfaceState);
+
+        // "thtl", "thst",                         // Throttle and thrust state
+        filler.Add(aircraft.Throttle, aircraft.Engine.Thrust / aircraft.Engine.Parameters.MaxThrust);
+
+        // "spdE", "vSdE", "DHdE"                  // Target speed, v speed, and turn rate errors
+        filler.Add(agent.TargetSpeed - aircraft.AirSpeed,
+            agent.TargetVSpeed - aircraft.LinearVelocity.Y,
+            Mathf.AngleDifference(agent.TargetTurnRate, aircraft.TurnRate));
+
+        // "aggr"                                  // Aggressiveness
+        filler.Add(agent.Aggressiveness);
 
         if (filler.Count != InputSize)
         {

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="ArcadeParametersResource" format=3 uid="uid://bcbrrjunjhd7o"]
+
+[ext_resource type="Script" uid="uid://cx4pkypcbtaxb" path="res://Aero/Arcade/ArcadeEngineResource.cs" id="1_mgwab"]
+[ext_resource type="Script" uid="uid://n0nbbdnwwgc4" path="res://Aero/Arcade/ArcadeParametersResource.cs" id="2_updhe"]
+
+[sub_resource type="Curve" id="Curve_mgwab"]
+_data = [Vector2(0, 1), 0.0, -3.8769236, 0, 0, Vector2(0.15833333, 0.70769227), -0.7384615, -0.7384615, 0, 0, Vector2(1, 0.49891824), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Resource" id="Resource_x68l3"]
+script = ExtResource("1_mgwab")
+MaxThrust = 20000.0
+DensityExp = 0.2
+MachThrust = SubResource("Curve_mgwab")
+ThrottleResponse = 0.5
+metadata/_custom_type_script = "uid://cx4pkypcbtaxb"
+
+[sub_resource type="Curve" id="Curve_5xfn1"]
+_limits = [-1.0, 1.0, -180.0, 180.0]
+_data = [Vector2(-180, 0), 0.0, 0.0, 0, 0, Vector2(-135, 0.4), 0.0, 0.0, 0, 0, Vector2(-37.460434, -0.6557596), 0.0, 0.0, 0, 0, Vector2(-25.164154, -0.8877872), 0.0, 0.0, 0, 0, Vector2(22, 1), 0.0, 0.0, 0, 0, Vector2(36.0542, 0.78850186), 0.0, 0.0, 0, 0, Vector2(135, -0.4), 0.0, 0.0, 0, 0, Vector2(180, 0), 0.0, 0.0, 0, 0]
+point_count = 8
+
+[resource]
+script = ExtResource("2_updhe")
+DragCoefficient = 0.005
+InducedDragCoefficient = 0.01
+LiftMultiplier = 15.0
+LiftCurve = SubResource("Curve_5xfn1")
+StallAoA = 25.0
+TurnRates = Vector3(180, 5, 90)
+RateResponsiveness = 6.0
+YAccelerationLimits = Vector2(-20, 40)
+AoALimit = 20.0
+AoALimitStrength = 0.5
+TurnTorqueMultiplier = Vector3(10, 1, 2)
+ControllerGains = Vector3(2, 1, 1)
+ReferenceSpeed = 60.0
+MaxRateScale = 6.0
+YawCorrectionStrength = 100.0
+PitchCorrectionStrength = 10.0
+AdverseYawStrength = 0.05
+DihedralStrength = 0.05
+StabilizerPitchStrength = 0.01
+SideslipRollStrength = 0.01
+EngineParameters = SubResource("Resource_x68l3")
+metadata/_custom_type_script = "uid://n0nbbdnwwgc4"

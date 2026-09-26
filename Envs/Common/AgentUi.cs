@@ -19,6 +19,7 @@ public partial class AgentUi : Control
     public IEnv Env;
     public Agent Agent;
     public IReadOnlyStats Stats;
+    public int AgentId = 0;
 
     [Export]
     private Label _inputLabel;
@@ -36,21 +37,18 @@ public partial class AgentUi : Control
 
     public override void _Process(double delta)
     {
-        // var inputs = Env.Observe().cuda();
-        var inputs = Env.Observe();
-        var (action, _, _, _) = Agent.GetActionAndValue(inputs);
-        var (reward, _, _) = Env.Evaluate(false);
+        var inputs = Env.PrevObservation;
+        var action = Env.PrevActuation;
 
-        reward = reward.cpu();
-        inputs = inputs.cpu();
-        action = action.cpu();
+        if (inputs is null) return;
+        if (action is null) return;
 
         var inputShape = inputs.shape;
         var inputData = inputs.data<float>();
         var inputVals = new StringBuilder();
         for (int i = 0; i < inputShape[1]; i++)
         {
-            inputVals.AppendLine($"{Env.InputLabels[i]}: {inputData[0, i],10:00.0000}");
+            inputVals.AppendLine($"{Env.InputLabels[i]}: {inputData[AgentId, i],10:00.0000}");
         }
 
         var actionShape = action.shape;
@@ -58,7 +56,7 @@ public partial class AgentUi : Control
         var actionVals = new StringBuilder();
         for (int i = 0; i < actionShape[1]; i++)
         {
-            actionVals.AppendLine($"{Env.OutputLabels[i]}: {actionData[0, i],10:00.0000}");
+            actionVals.AppendLine($"{Env.OutputLabels[i]}: {actionData[AgentId, i],10:00.0000}");
         }
 
         var stats = new StringBuilder();
@@ -66,11 +64,15 @@ public partial class AgentUi : Control
         {
             stats.AppendLine($"{stat.Key}: {stat.Value.val,10:00.0000} {stat.Value.ave,10:00.0000}");
         }
+        foreach (var rewardStat in Env.RewardStats)
+        {
+            stats.AppendLine($"{rewardStat.Item1}: {rewardStat.Item2,10:00.0000}");
+        }
 
         _inputLabel.Text = $"{inputVals}";
         _outputLabel.Text = $"{actionVals}";
-        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}";
-        _rewardLabel.Text = $"rewd: {reward[0].item<float>(),10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
+        _rewardLabel.Text = $"rewd: {EnvAgent.Reward,10:00.0000}\nagee: {EnvAgent.Age,10:00.0000}\nstrk: {EnvAgent.HitStreak,10:00.0000}";
+
         _statsLabel.Text = $"{stats}";
     }
 }

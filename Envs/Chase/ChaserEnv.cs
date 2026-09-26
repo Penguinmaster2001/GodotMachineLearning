@@ -39,6 +39,9 @@ public class ChaserEnv : IEnv
     private readonly TargetNode[] _targets;
     private readonly int[] _stepCounts;
     private readonly Action<ChaserNode, TargetNode> _reset;
+    public (string, float)[] RewardStats { get; private set; } = [];
+    public torch.Tensor PrevObservation { get; private set; }
+    public torch.Tensor PrevActuation { get; private set; }
 
 
     private int _maxSteps = 3072;

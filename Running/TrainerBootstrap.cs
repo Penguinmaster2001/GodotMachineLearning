@@ -34,25 +34,21 @@ public partial class TrainerBootstrap : Node
     [Export]
     private Node3D _end;
 
-    private List<ArcadeAircraft> _aircrafts = [];
-    private List<TargetNode> _targets = [];
+    private readonly List<ArcadeAircraftAgent> _agents = [];
+    private readonly List<TargetNode> _targets = [];
 
     [Export]
     private AgentUi _ui;
 
     [Export]
-    private CameraFollowsRigidbody _followCam;
+    public Godot.Collections.Array<Node3D> Cameras = [];
+    public int CurrentCamera = 0;
 
     [Export]
-    private Camera3D _observeCam;
+    public int CurrentPlane = 0;
 
-    private enum CameraMode
-    {
-        Observe,
-        Follow,
-    }
-
-    private CameraMode _currentCameraMode = CameraMode.Observe;
+    [Export]
+    private CameraFollowsRigidbody _followCam;
 
     [Export]
     private long _updateFramePeriod = 5;
@@ -88,17 +84,15 @@ public partial class TrainerBootstrap : Node
     public override void _Ready()
     {
         var (options, env) = ArcadeEnvFactory.CreateEnv(
-            _aircrafts,
+            _agents,
             _targets,
             _num,
             _start.Position,
             _end.Position,
-            () => _aircraft.Instantiate<ArcadeAircraft>(),
+            () => new(_aircraft.Instantiate<ArcadeAircraft>()),
             () => _target.Instantiate<TargetNode>(),
             () => _resultIndicator.Instantiate<ResultIndicator>(),
             n => AddChild(n));
-
-        _followCam.ToFollow = _aircrafts[0];
 
         if (_loadFromCheckpoint)
         {
@@ -114,8 +108,8 @@ public partial class TrainerBootstrap : Node
         _ui.Env = env;
         _ui.Agent = _trainer.Agent;
         _ui.Stats = _trainer.Stats;
-        _ui.EnvAgent = _aircrafts[0];
-        _ui.Target = _targets[0];
+
+        SetCurrentPlane();
     }
 
 
@@ -140,19 +134,45 @@ public partial class TrainerBootstrap : Node
 
     public override void _Input(InputEvent input)
     {
-        if (input is InputEventKey { Pressed: true, Keycode: Key.Space })
+        switch (input)
         {
-            switch (_currentCameraMode)
-            {
-                case CameraMode.Follow:
-                    _observeCam.MakeCurrent();
-                    _currentCameraMode = CameraMode.Observe;
+            case InputEventKey { Pressed: true, Keycode: Key.Space } key:
+                {
+                    CurrentCamera = (CurrentCamera + Cameras.Count + (key.ShiftPressed ? -1 : 1)) % Cameras.Count;
+
+                    switch (Cameras[CurrentCamera])
+                    {
+                        case Camera3D camera:
+                            camera.MakeCurrent();
+                            break;
+                        case CameraFollowsRigidbody camera:
+                            camera.MakeCurrent();
+                            break;
+                    }
+
                     break;
-                case CameraMode.Observe:
-                    _followCam.MakeCurrent();
-                    _currentCameraMode = CameraMode.Follow;
-                    break;
-            }
+                }
+
+            case InputEventKey { Pressed: true, Keycode: Key.Right }:
+                CurrentPlane += 1;
+                SetCurrentPlane();
+                break;
+            case InputEventKey { Pressed: true, Keycode: Key.Left }:
+                CurrentPlane -= 1;
+                SetCurrentPlane();
+                break;
         }
+    }
+
+
+
+    private void SetCurrentPlane()
+    {
+        CurrentPlane = Mathf.PosMod(CurrentPlane, _agents.Count);
+
+        _ui.EnvAgent = _agents[CurrentPlane];
+        _ui.Target = _targets[CurrentPlane];
+        _ui.AgentId = CurrentPlane;
+        _followCam.ToFollow = _agents[CurrentPlane].Aircraft;
     }
 }

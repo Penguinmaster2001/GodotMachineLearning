@@ -24,6 +24,9 @@ public class Env<T> : IEnv
     private readonly int[] _stepCounts;
     private readonly Action<T> _reset;
     private readonly Func<T, (float, bool, bool)> _score;
+    public (string, float)[] RewardStats { get; private set; } = [];
+    public torch.Tensor PrevObservation { get; private set; }
+    public torch.Tensor PrevActuation { get; private set; }
 
 
     // private int _maxSteps = 3072;

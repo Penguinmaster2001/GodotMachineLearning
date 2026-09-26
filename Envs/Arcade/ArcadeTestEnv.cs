@@ -21,6 +21,17 @@ public partial class ArcadeTestEnv : Node3D
     [Export]
     public Hud Hud;
 
+    [Export]
+    public Tagger Tagger;
+
+    [Export]
+    private bool _recordStates;
+
+    [Export]
+    private double _recordFrequency;
+    private double _recordTimer = 0.0;
+    private readonly InitialStateManager.InitialStateRecorder _stateRecorder = new();
+
 
 
     public override void _Ready()
@@ -28,13 +39,15 @@ public partial class ArcadeTestEnv : Node3D
         ArcadeController.SetChannels(new Dictionary<string, int>
         {
             {"pitch", 0},
-            {"roll", 1},
-            {"yaw", 2},
+            {"yaw", 1},
+            {"roll", 2},
             {"throttle", 3},
         });
 
+        Aircraft.WorldVars = new();
         Hud.InputNames = Aircraft.InputNames;
         Hud.InputData = Aircraft.GetObservation;
+
     }
 
 
@@ -45,9 +58,22 @@ public partial class ArcadeTestEnv : Node3D
 
         Aircraft.SetControls(
             ArcadeController.GetChannel("pitch"),
-            ArcadeController.GetChannel("roll"),
             ArcadeController.GetChannel("yaw"),
+            ArcadeController.GetChannel("roll"),
             ArcadeController.GetChannel("throttle")
         );
+
+        if (Input.IsActionPressed("action_primary"))
+        {
+            Hud.HitCount += Tagger.Tag();
+        }
+
+        _recordTimer -= delta;
+        if (_recordTimer <= 0.0)
+        {
+            _recordTimer = 1.0 / _recordFrequency;
+            _stateRecorder.Record(Aircraft);
+            _stateRecorder.SaveRecordedStates(ProjectSettings.GlobalizePath("res://Data/initial_states.json"));
+        }
     }
 }

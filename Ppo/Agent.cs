@@ -23,11 +23,20 @@ public class Agent : nn.Module
         Critic = BuildMlp(env.InputSize, hiddenSizes, outputSize: 1, outputStd: 1.0f);
         Actor = BuildMlp(env.InputSize, hiddenSizes, outputSize: env.OutputSize, outputStd: 0.01f);
 
-        // log(std) starts at 0 => std = 1 initially. Free parameter, not a
-        // function of the input state — see earlier explanation.
         LogStd = nn.Parameter(torch.zeros(env.OutputSize));
 
         RegisterComponents();
+    }
+
+
+
+    public Agent ToDevice(DeviceType device)
+    {
+        this.to(device);
+        // LogStd = nn.Parameter(LogStd.to(device));
+        // RegisterComponents();
+
+        return this;
     }
 
 
@@ -51,10 +60,11 @@ public class Agent : nn.Module
 
 
 
-    public torch.Tensor GetValue(torch.Tensor x)
-    {
-        return Critic.call(x);
-    }
+    public torch.Tensor GetValue(torch.Tensor x) =>  Critic.call(x);
+
+
+
+    public torch.Tensor GetMeanAction(torch.Tensor x) => Actor.call(x);
 
 
 
@@ -62,8 +72,8 @@ public class Agent : nn.Module
     public (torch.Tensor action, torch.Tensor logProb, torch.Tensor entropy, torch.Tensor value) GetActionAndValue(torch.Tensor x, torch.Tensor? action = null)
     {
         var mean = Actor.call(x);                       // shape [batch, OutputSize]
-        // var std = LogStd.cuda().exp().expand_as(mean);         // broadcast to match batch
         var std = LogStd.exp().expand_as(mean);         // broadcast to match batch
+        // var std = LogStd.cuda().exp().expand_as(mean);         // broadcast to match batch
 
         var probs = new Normal(mean, std);
 

@@ -34,6 +34,13 @@ public class WorldVars
 
 
 
+    public float SpeedOfSound(Vector3 position)
+    {
+        return 330.0f + (position.Y * (280.0f - 330.0f) / 10000.0f);
+    }
+
+
+
     public Vector3 Gravity(Vector3 position)
     {
         // position -= PlanetCenter;

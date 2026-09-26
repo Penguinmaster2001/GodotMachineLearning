@@ -10,7 +10,7 @@ namespace PPO.Benchmarking;
 
 public class Stats : IReadOnlyStats
 {
-    public const int HistoryLength = 20;
+    public const int HistoryLength = 10;
     public IReadOnlyDictionary<string, (float val, float ave)> StatNames => _statNames;
     private readonly Dictionary<string, (float val, float ave)> _statNames = [];
     private readonly Dictionary<string, (int offset, float[] hist)> _statHistories = [];

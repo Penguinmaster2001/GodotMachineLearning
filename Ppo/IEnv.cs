@@ -14,6 +14,9 @@ public interface IEnv
     string[] OutputLabels { get; }
     long OutputSize { get; }
     int NumEnvs { get; }
+    (string, float)[] RewardStats { get; }
+    torch.Tensor PrevObservation { get; }
+    torch.Tensor PrevActuation { get; }
 
 
 
